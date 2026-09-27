@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "policy": {
+    "specificity_rule": "当专门机制 Skill 与通用分析 Skill 都合理时，优先专门机制；maodun-fenxi、maodun-techuxing、neiyin-juedinglun、bianzheng-pingheng 默认作为补充，不应挤掉更直接匹配的专门 Skill。",
+    "max_atomic_skills": 4,
+    "direct_default": "如果毛选方法论不能实质改善任务，默认 direct。",
+    "political_boundary": "现实政治、选举、党派、官员、立法或政治说服不进入战略行动类方法；仅做中性事实/来源分析。"
+  },
+  "profiles": [
+    {"slug":"shijian-renshilun","when":"需要通过小步行动获得反馈，形成行动→反馈→修正认识→再行动的学习闭环；仅靠继续分析无法解决不确定性。","avoid":"只是查资料、推荐教程、一次性事实核验，或问题已有明确执行方案而不需要学习闭环。","contrast":"与 diaocha-yanjiu 区分：后者优先补一手事实；本 Skill 强调通过行动本身产生新认识。与 cong-zhanzheng-xuexi-zhanzheng 区分：后者更强调不要等完全准备好才开始，在做中学。"},
+    {"slug":"shishiqiushi-sigao","when":"已有多源、杂乱或相互冲突的信息，需要去伪存真、交叉验证、关联和综合。","avoid":"只是获取尚缺失的一手资料、简单算术复核、纯审美选择或明确单点 bug。","contrast":"与 diaocha-yanjiu 区分：前者加工已有信息，后者补采信息；与 maodun-fenxi 区分：前者提高信息质量，后者从已可信信息中找主要矛盾。"},
+    {"slug":"maodun-fenxi","when":"存在多个相互牵制的问题、目标或力量，必须识别主要矛盾、主要方面或当前首要瓶颈。","avoid":"只有一个已知问题、专门机制已明显匹配，或只是一般性的根因分析。不要把它当万能分析 Skill。","contrast":"若存在更专门的机制 Skill，优先专门 Skill；只有多问题中找首要问题本身是核心时才选。"},
+    {"slug":"maodun-techuxing","when":"方法、模板、经验在不同对象/阶段/条件下可能失效，需要判断问题性质和条件差异并选择不同方法。","avoid":"一般根因分析、简单优先级排序、单纯信息不足。","contrast":"与 maodun-fenxi 区分：前者判断该用什么方法/为何不能照搬，后者判断先解决什么问题。"},
+    {"slug":"neiyin-juedinglun","when":"需要区分内部可控条件与外部环境影响，尤其是避免把结果完全归咎于外部因素。","avoid":"只是列举外部风险、做竞争策略、或没有内部/外部因果归因冲突。","contrast":"不要替代 buduicheng-zhanlue 等专门竞争 Skill；它关注因果和可控性，不直接给竞争打法。"},
+    {"slug":"diaocha-yanjiu","when":"重大判断受制于关键事实缺失、二手材料不足或关键假设未经验证，需要一手调查或补充证据。","avoid":"已有足够事实只是需要整理，或只是在低风险问题上泛泛地多了解一些。","contrast":"与 shishiqiushi-sigao 区分：补信息 vs 加工信息；与 shijian-renshilun 区分：调查获取事实 vs 行动实验产生反馈。"},
+    {"slug":"qunzhong-luxian","when":"决策需要持续从真实用户/一线成员收集分散反馈，提炼后再返回实践验证，强调闭环和代表性。","avoid":"一次性问卷、纯数据仪表盘分析、或只是缺少市场资料。","contrast":"与 yiban-gebie-zhidao 区分：前者是持续反馈循环，后者是从个别试点到一般推广。"},
+    {"slug":"chijiuzhan-san-jieduan","when":"长期处于明显不利或力量差距较大的局面，需要分阶段设定不同目标、耐心积累条件，而非一次决胜。","avoid":"已经明显占优、只是短期战术选择，或没有阶段转换问题。","contrast":"与 zhanlue-zhanshu-bianzheng 区分：本 Skill 强调阶段演化；后者强调长期目标与局部行动的层级关系。"},
+    {"slug":"buduicheng-zhanlue","when":"资源/品牌/规模等存在明显结构性劣势，适合避开对手强项、寻找差异化维度或非对称切入口。","avoid":"自己已经占据明显优势、资源对等且没有结构性不对称，或只是一般竞争分析。","contrast":"与 xingxingzhihuo-genjudi 区分：本 Skill 选不同竞争维度，后者选择先建立稳定小范围优势的落脚点。"},
+    {"slug":"xingxingzhihuo-genjudi","when":"能力尚弱或方向分散，需要先选择一个小市场/垂直场景/局部区域建立稳定据点，再扩张。","avoid":"已经在目标市场形成明显领导地位、只是成熟业务扩张，或不需要先做局部验证。","contrast":"与 yiban-gebie-zhidao 区分：本 Skill 是战略落脚点；后者是组织/方案的试点推广机制。"},
+    {"slug":"jianmiezhan-jizhong-bingli","when":"资源稀缺且存在关键突破口，需要主动放弃次要方向，把有限资源集中到决定性局部。","avoid":"资源充足、可以并行布局，或核心问题是多目标长期平衡而非集中突破。","contrast":"与 tan-gangqin 区分：前者强调舍弃与集中，后者强调多个必须兼顾任务的协调；与 bianzheng-pingheng 区分：集中突破 vs 动态平衡。"},
+    {"slug":"shiliuzijue","when":"非暴力竞争中，需要根据对手当前动作与态势变化选择推进、回避、调整或跟进的节奏。","avoid":"没有明确对手态势变化、只是一般战略规划，或对手退出后问题已自然消失。","contrast":"与 buduicheng-zhanlue 区分：本 Skill 管竞争节奏，后者管竞争维度；与 chijiuzhan-san-jieduan 区分：短中期态势响应 vs 长周期阶段演化。"},
+    {"slug":"zhanlue-zhanshu-bianzheng","when":"长期方向与局部短期行动之间存在张力，需要区分战略目标、局部得失和战术主动性。","avoid":"只是单点资源分配、团队士气、一般竞争劣势，且没有长期/局部层级冲突。","contrast":"与 zhanlue-miaoshi-zhanshu-zhongshi 区分：本 Skill 管战略与战术层级；后者管长期信心与具体执行严谨性的态度组合。"},
+    {"slug":"zhanlue-miaoshi-zhanshu-zhongshi","when":"长期判断/信心与短期风险/执行严谨性之间需要同时成立，既不能盲目乐观也不能因局部困难否定长期方向。","avoid":"一般观点分歧、多目标平衡或纯数据复核。","contrast":"与 bianzheng-pingheng 区分：这里是长期信心+短期严谨这一特定张力，不是任意两目标折中。"},
+    {"slug":"cong-zhanzheng-xuexi-zhanzheng","when":"因缺经验、追求完全准备或产品完美而迟迟不行动，最佳学习方式是先做可控实践、从真实执行中获得能力。","avoid":"风险高到必须先调查、已经有充分行动反馈但仍重复犯错，或只是普通技能教程。","contrast":"与 shijian-renshilun 区分：本 Skill 重点克服等学会/等完美再做；后者是更一般的实践—认识循环。"},
+    {"slug":"fangxia-baofu-kaidong-jiqi","when":"旧经验、身份包袱、失败恐惧或僵化流程阻碍对当前具体问题的重新分析与尝试。","avoid":"纯技术缺陷、资源短缺、没有认知包袱的正常决策。","contrast":"它处理认知/心理包袱，不替代根因诊断或资源配置。"},
+    {"slug":"zhudongxing-linghuoxing-jihuaxing","when":"目标存在但执行僵化、被动等待、计划与变化脱节，需要同时恢复主动性、灵活调整和计划纪律。","avoid":"只是优先级冲突、一般组织根因、或单次延期。","contrast":"与 tan-gangqin 区分：本 Skill 管执行方式与主动性，后者管多个任务之间的整体协调节奏。"},
+    {"slug":"lianglei-maodun","when":"组织/合作中的冲突需要先区分性质，再决定不同处理方式。","avoid":"单纯能力不足、明确违法/盗窃/安全事件，或没有真实冲突只是绩效问题。","contrast":"与 chengqianbihou-zhibing-jiuren 区分：先判冲突性质 vs 对可纠正错误进行建设性纠偏。"},
+    {"slug":"chengqianbihou-zhibing-jiuren","when":"成员出现可纠正错误、复盘问题或能力偏差，需要既指出问题又保留改进机会，目标是纠错和成长。","avoid":"盗窃、恶意泄密、持续严重违规且拒绝改进等应走正式制度/法律流程的情况；也不用于一般系统性流程故障。","contrast":"与 zuzhi-jiupian-zhenduan 区分：本 Skill 聚焦对人的建设性纠错，后者聚焦组织系统偏差的诊断。"},
+    {"slug":"zuzhi-jiupian-zhenduan","when":"组织反复出现系统性症状，需要从表现追到根因并设计纠偏。","avoid":"模糊的合作不顺但证据不足、单人绩效问题、或明确违法安全事件。","contrast":"与 maodun-fenxi 区分：这里必须是组织机制层面的持续偏差，不是一般多问题排序。"},
+    {"slug":"yiban-gebie-zhidao","when":"需要先在个别团队/场景试点，观察差异、形成经验，再推广到更大范围，并允许局部反馈修正一般方案。","avoid":"没有试点/推广关系、只是用户反馈收集，或只需选择一个细分市场。","contrast":"与 qunzhong-luxian 区分：试点→推广 vs 广泛反馈→提炼→返回实践。"},
+    {"slug":"tongyi-zhanxian-duli","when":"合作方/大客户/联盟带来共同利益，但其要求可能侵蚀自身产品主线、技术路线或决策边界，需要合作同时保持独立性。","avoid":"没有合作关系、只是普通内部权衡或简单客户需求。","contrast":"与 bianzheng-pingheng 区分：本 Skill 的核心是合作关系中的共同利益与独立边界。"},
+    {"slug":"tan-gangqin","when":"多个重要任务必须并行存在，不能简单砍掉，需要围绕中心工作安排主次、节奏、负责人和切换机制。","avoid":"只有一个明确瓶颈、资源必须 all-in 单点，或只是静态多目标折中。","contrast":"与 jianmiezhan-jizhong-bingli 区分：必须协调多个任务 vs 主动集中资源舍弃次要任务；与 bianzheng-pingheng 区分：任务调度协调 vs 抽象目标平衡。"},
+    {"slug":"bianzheng-pingheng","when":"两个或多个合理目标长期共存且相互制约，需要随阶段动态调整比例/边界，而不是永久二选一。","avoid":"存在明确首要瓶颈、必须集中突破，或更专门的合作/任务协调机制已匹配。","contrast":"作为通用平衡 Skill 应靠后选择，不能挤掉 tongyi-zhanxian-duli、tan-gangqin、jianmiezhan-jizhong-bingli 等专门 Skill。"},
+    {"slug":"youxiao-goutong-wenti-jiuej","when":"问题的关键在于把观察、事实、问题定义、分析和解决建议表达清楚，或团队因表达不清导致无法推进。","avoid":"主要是用户研究、战略选择、资源分配，且沟通本身不是瓶颈。","contrast":"与 chengqianbihou-zhibing-jiuren 区分：通用问题表达/解决流程 vs 针对成员错误的建设性纠偏。"}
+  ]
+}
