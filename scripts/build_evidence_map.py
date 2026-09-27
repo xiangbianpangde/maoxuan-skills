@@ -65,8 +65,6 @@ def reading_quotes(text: str):
             if pending: flush(None)
             continue
         z=stripped[1:].strip()
-        # Upstream commonly inserts an empty blockquote line between quote and attribution.
-        # Do not flush here; preserve the quote until the following —《source》 line.
         if not z:
             continue
         am=re.match(r'—\s*《([^》]+)》', z)
@@ -136,9 +134,35 @@ def ordered_ellipsis_match(raw: str, a):
         if first is None: first=idx
         last=idx+len(seg)-1
         cursor=idx+len(seg)
-    i=paragraph_for_offset(a,first or 0)
-    j=paragraph_for_offset(a,last or 0)
-    return i,j
+    return paragraph_for_offset(a,first or 0), paragraph_for_offset(a,last or 0)
+
+
+def sentence_segments(raw: str):
+    raw=raw.strip().strip('"“”')
+    parts=re.split(r'(?<=[。！？!?])\s*',raw)
+    return [norm(x) for x in parts if len(norm(x))>=12]
+
+
+def ordered_composite_match(raw: str, a):
+    # Detect blockquotes constructed from multiple non-contiguous excerpts of
+    # the same source. Every substantial sentence must occur exactly, in order.
+    segs=sentence_segments(raw)
+    if len(segs)<2:
+        return None
+    full=''.join(a['normpars'])
+    cursor=0; para_ids=[]
+    for seg in segs:
+        idx=full.find(seg,cursor)
+        if idx<0:
+            return None
+        pi=paragraph_for_offset(a,idx)
+        if pi not in para_ids:
+            para_ids.append(pi)
+        cursor=idx+len(seg)
+    # Only call it composite when the evidence is actually non-contiguous.
+    if len(para_ids)<2 or max(para_ids)-min(para_ids) <= len(para_ids):
+        return None
+    return para_ids
 
 
 def fuzzy_score(q: str, w: str) -> float:
@@ -162,6 +186,11 @@ def make_match(a,i,j,kind,score,q):
     return {'source_id':ids[0],'source_ids':ids,'path':a['rel'],'match_type':kind,'score':round(score,4),'quote_preview':q[:120]}
 
 
+def make_composite_match(a,para_ids,q):
+    ids=[sid(a,k) for k in para_ids]
+    return {'source_id':ids[0],'source_ids':ids,'path':a['rel'],'match_type':'composite','span_mode':'noncontiguous','score':1.0,'quote_preview':q[:120]}
+
+
 def find_quote(q: str, pool):
     nq=norm(q)
     if len(nq)<12: return []
@@ -169,21 +198,21 @@ def find_quote(q: str, pool):
         for i,j,nw in paragraph_windows(a):
             if nq in nw or (len(nw)>=18 and nw in nq):
                 return [make_match(a,i,j,'exact',1.0,q)]
-    # Ellipsized quotations intentionally omit material. Require all substantial
-    # segments to appear in order in the same declared source article.
     for a in pool:
         span=ordered_ellipsis_match(q,a)
         if span:
             i,j=span
             return [make_match(a,i,j,'ellipsis',1.0,q)]
+    for a in pool:
+        para_ids=ordered_composite_match(q,a)
+        if para_ids:
+            return [make_composite_match(a,para_ids,q)]
     best=None
     for a in pool:
         for i,j,nw in paragraph_windows(a):
             score=fuzzy_score(nq,nw)
             if best is None or score>best[0]:
                 best=(score,a,i,j)
-    # Keep fuzzy alignment conservative; lower scores are more useful as unresolved
-    # audit cases than as false evidence links.
     if best and best[0]>=0.90:
         score,a,i,j=best
         return [make_match(a,i,j,'fuzzy',score,q)]
@@ -201,11 +230,7 @@ for s in CAT['skills']:
         for title in titles:
             matches=title_matches(title,arts)
             title_map[title]=matches
-            rec['source_chapter_matches'].append({
-                'declared':title,
-                'local_source_status':'matched' if matches else 'not_found',
-                'matches':[a['rel'] for a in matches]
-            })
+            rec['source_chapter_matches'].append({'declared':title,'local_source_status':'matched' if matches else 'not_found','matches':[a['rel'] for a in matches]})
         all_candidates=[]
         for xs in title_map.values():
             for a in xs:
@@ -221,15 +246,9 @@ for s in CAT['skills']:
                 pool=all_candidates or arts
                 source_status='unspecified'
             found=find_quote(q,pool) if pool else []
-            rec['reading_quote_matches'].append({
-                'declared_source':declared,
-                'local_source_status':source_status,
-                'match_status': found[0]['match_type'] if found else ('source_not_found' if source_status=='not_found' else 'unresolved'),
-                'quote_preview':q[:160],
-                'matches':found
-            })
+            rec['reading_quote_matches'].append({'declared_source':declared,'local_source_status':source_status,'match_status':found[0]['match_type'] if found else ('source_not_found' if source_status=='not_found' else 'unresolved'),'quote_preview':q[:160],'matches':found})
     result[s['slug']]=rec
 
 out=ROOT/'evidence/skill-source-map.generated.json'
-out.write_text(json.dumps({'schema_version':'2.1','skills':result},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+out.write_text(json.dumps({'schema_version':'2.2','skills':result},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 print(out)
