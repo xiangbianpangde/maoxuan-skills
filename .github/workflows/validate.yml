@@ -26,7 +26,7 @@ jobs:
         run: python3 scripts/sync_upstreams.py
 
       - name: Compile Python
-        run: python3 -m py_compile retrieval/*.py scripts/*.py eval/*.py
+        run: python3 -m py_compile retrieval/*.py scripts/*.py eval/*.py eval/task_gain/*.py
 
       - name: Validate JSON
         run: |
@@ -56,6 +56,21 @@ jobs:
           expected = '3ff1154048f2f2c3c218074d66bb8ece3d95257a0557c7c5a5c45f9c9d23cdfb'
           assert got == expected, (got, expected)
           print('held-out SHA256 OK', got)
+          PY
+
+      - name: Task Gain harness dry run
+        run: |
+          python3 eval/run_task_gain.py --dry-run
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          freeze = json.loads(pathlib.Path('eval/task_gain/TASK_GAIN_FREEZE.json').read_text())
+          for path, key in [
+              ('eval/task_gain/tasks-v1.jsonl', 'tasks_sha256'),
+              ('eval/task_gain/rubric-v1.json', 'rubric_sha256'),
+          ]:
+              got = hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+              assert got == freeze[key], (path, got, freeze[key])
+              print('task-gain frozen input OK', path, got)
           PY
 
       - name: Build corpus index
