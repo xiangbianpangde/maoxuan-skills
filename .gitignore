@@ -7,3 +7,6 @@ vendor/kangarooking/
 vendor/leezythu/
 vendor/SYNC_MANIFEST.json
 evidence/*.generated.json
+eval/*.generated.json
+eval/*.generated.jsonl
+eval/results/
