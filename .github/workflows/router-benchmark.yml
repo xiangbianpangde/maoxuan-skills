@@ -1,0 +1,89 @@
+name: router-benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: OpenAI-compatible API base URL, including /v1 when required
+        required: true
+        type: string
+      model:
+        description: Model name sent to /chat/completions
+        required: true
+        type: string
+      limit:
+        description: Number of cases to run; 156 runs the full current suite
+        required: true
+        default: '156'
+        type: string
+      workers:
+        description: Parallel requests
+        required: true
+        default: '4'
+        type: string
+      no_response_format:
+        description: Disable response_format=json_object for endpoints that reject it
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  BENCH_BASE_URL: ${{ inputs.base_url }}
+  BENCH_MODEL: ${{ inputs.model }}
+  BENCH_LIMIT: ${{ inputs.limit }}
+  BENCH_WORKERS: ${{ inputs.workers }}
+  BENCH_API_KEY: ${{ secrets.MAOXUAN_BENCH_API_KEY }}
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify pinned upstreams
+        run: python3 scripts/sync_upstreams.py
+
+      - name: Build benchmark dataset
+        run: python3 eval/build_atomic_benchmark.py
+
+      - name: Run router benchmark
+        env:
+          NO_RESPONSE_FORMAT: ${{ inputs.no_response_format }}
+        run: |
+          mkdir -p eval/results
+          EXTRA=()
+          if [ "$NO_RESPONSE_FORMAT" = "true" ]; then EXTRA+=(--no-response-format); fi
+          python3 eval/run_router_benchmark.py \
+            --base-url "$BENCH_BASE_URL" \
+            --api-key "$BENCH_API_KEY" \
+            --model "$BENCH_MODEL" \
+            --limit "$BENCH_LIMIT" \
+            --workers "$BENCH_WORKERS" \
+            --output eval/results/router.jsonl \
+            "${EXTRA[@]}"
+
+      - name: Show summary
+        if: always()
+        run: |
+          if [ -f eval/results/router.summary.json ]; then cat eval/results/router.summary.json; fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: router-benchmark-${{ github.run_id }}
+          path: |
+            eval/results/router.jsonl
+            eval/results/router.summary.json
+          if-no-files-found: warn

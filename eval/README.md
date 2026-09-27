@@ -53,6 +53,17 @@ python3 eval/run_router_benchmark.py --dry-run
 
 输出保存在 `eval/results/`，包括逐 case JSONL 和 summary JSON。
 
+## 在 GitHub Actions 手动跑模型
+
+仓库包含 `.github/workflows/router-benchmark.yml`，不会在 push 时自动消耗 API Token，只能手动触发。
+
+1. 在仓库 `Settings -> Secrets and variables -> Actions` 创建 Repository secret：`MAOXUAN_BENCH_API_KEY`。
+2. 打开 `Actions -> router-benchmark -> Run workflow`。
+3. 填入 Base URL、model、case limit 和并发数。
+4. 完成后下载 `router-benchmark-<run_id>` artifact，里面有逐 case 输出和汇总分数。
+
+如果目标 endpoint 不需要 API key，可以不设置 secret；如果不支持 `response_format: {"type":"json_object"}`，运行时勾选 `no_response_format`。
+
 ## 尚未自动化的 Task Gain
 
 “用了 Skill 后答案是否比 Vanilla LLM 更好”需要面向具体任务的 judge rubric，不能用 Router 命中率替代。后续应比较：
