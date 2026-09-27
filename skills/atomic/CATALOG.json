@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "upstream": "kangarooking/mao-selected-works-skill",
+  "pinned_commit": "5058fe41ad7acd8e04cc53de96a57a91938b67d1",
+  "notes": [
+    "目录描述用于路由；完整 RIA++ 内容由 scripts/sync_upstreams.py 同步。",
+    "军事来源条目只允许非暴力抽象迁移。"
+  ],
+  "skills": [
+    {"slug":"shijian-renshilun","name":"实践认识论","summary":"实践→认识→再实践的螺旋认知循环","group":"cognition","vendor_path":"vendor/kangarooking/shijian-renshilun/SKILL.md","tests_path":"vendor/kangarooking/shijian-renshilun/test-prompts.json"},
+    {"slug":"shishiqiushi-sigao","name":"实事求是信息加工法","summary":"去粗取精、去伪存真、由此及彼、由表及里的信息加工","group":"cognition","vendor_path":"vendor/kangarooking/shishiqiushi-sigao/SKILL.md","tests_path":"vendor/kangarooking/shishiqiushi-sigao/test-prompts.json"},
+    {"slug":"maodun-fenxi","name":"矛盾分析法","summary":"从多个矛盾中识别主要矛盾与当前瓶颈","group":"cognition","vendor_path":"vendor/kangarooking/maodun-fenxi/SKILL.md","tests_path":"vendor/kangarooking/maodun-fenxi/test-prompts.json"},
+    {"slug":"maodun-techuxing","name":"矛盾特殊性原则","summary":"不同性质的问题使用不同方法，避免机械套用","group":"cognition","vendor_path":"vendor/kangarooking/maodun-techuxing/SKILL.md","tests_path":"vendor/kangarooking/maodun-techuxing/test-prompts.json"},
+    {"slug":"neiyin-juedinglun","name":"内因决定论","summary":"分析内部条件与外部条件的作用关系","group":"cognition","vendor_path":"vendor/kangarooking/neiyin-juedinglun/SKILL.md","tests_path":"vendor/kangarooking/neiyin-juedinglun/test-prompts.json"},
+    {"slug":"diaocha-yanjiu","name":"调查研究法","summary":"在重大判断前获取一手信息并校验假设","group":"research","vendor_path":"vendor/kangarooking/diaocha-yanjiu/SKILL.md","tests_path":"vendor/kangarooking/diaocha-yanjiu/test-prompts.json"},
+    {"slug":"qunzhong-luxian","name":"群众路线循环","summary":"收集分散意见→提炼→返回实践验证的反馈循环","group":"research","vendor_path":"vendor/kangarooking/qunzhong-luxian/SKILL.md","tests_path":"vendor/kangarooking/qunzhong-luxian/test-prompts.json"},
+    {"slug":"chijiuzhan-san-jieduan","name":"三阶段持久战","summary":"把长期不利局面拆分为不同阶段并设置不同任务","group":"strategy","vendor_path":"vendor/kangarooking/chijiuzhan-san-jieduan/SKILL.md","tests_path":"vendor/kangarooking/chijiuzhan-san-jieduan/test-prompts.json"},
+    {"slug":"buduicheng-zhanlue","name":"不对称战略","summary":"在非暴力竞争中避免正面对撞，寻找结构性差异","group":"strategy","vendor_path":"vendor/kangarooking/buduicheng-zhanlue/SKILL.md","tests_path":"vendor/kangarooking/buduicheng-zhanlue/test-prompts.json"},
+    {"slug":"xingxingzhihuo-genjudi","name":"根据地与边缘突破","summary":"先在小范围形成稳定能力，再逐步扩展","group":"strategy","vendor_path":"vendor/kangarooking/xingxingzhihuo-genjudi/SKILL.md","tests_path":"vendor/kangarooking/xingxingzhihuo-genjudi/test-prompts.json"},
+    {"slug":"jianmiezhan-jizhong-bingli","name":"集中优势资源","summary":"在关键局部集中有限资源形成突破；仅作非暴力抽象迁移","group":"strategy","vendor_path":"vendor/kangarooking/jianmiezhan-jizhong-bingli/SKILL.md","tests_path":"vendor/kangarooking/jianmiezhan-jizhong-bingli/test-prompts.json"},
+    {"slug":"shiliuzijue","name":"竞争节奏四步法","summary":"根据对手和环境状态调整节奏；仅作非暴力抽象迁移","group":"strategy","vendor_path":"vendor/kangarooking/shiliuzijue/SKILL.md","tests_path":"vendor/kangarooking/shiliuzijue/test-prompts.json"},
+    {"slug":"zhanlue-zhanshu-bianzheng","name":"战略战术辩证","summary":"区分长期目标与局部行动，寻找宏观与微观的主动性","group":"strategy","vendor_path":"vendor/kangarooking/zhanlue-zhanshu-bianzheng/SKILL.md","tests_path":"vendor/kangarooking/zhanlue-zhanshu-bianzheng/test-prompts.json"},
+    {"slug":"zhanlue-miaoshi-zhanshu-zhongshi","name":"战略信心与战术严谨","summary":"长期层面保持信心，同时在具体执行上充分准备","group":"action","vendor_path":"vendor/kangarooking/zhanlue-miaoshi-zhanshu-zhongshi/SKILL.md","tests_path":"vendor/kangarooking/zhanlue-miaoshi-zhanshu-zhongshi/test-prompts.json"},
+    {"slug":"cong-zhanzheng-xuexi-zhanzheng","name":"行动中学习","summary":"通过实践获得反馈并迭代能力；仅作非暴力抽象迁移","group":"action","vendor_path":"vendor/kangarooking/cong-zhanzheng-xuexi-zhanzheng/SKILL.md","tests_path":"vendor/kangarooking/cong-zhanzheng-xuexi-zhanzheng/test-prompts.json"},
+    {"slug":"fangxia-baofu-kaidong-jiqi","name":"认知重启","summary":"识别心理与认知包袱，重新进入具体问题分析","group":"action","vendor_path":"vendor/kangarooking/fangxia-baofu-kaidong-jiqi/SKILL.md","tests_path":"vendor/kangarooking/fangxia-baofu-kaidong-jiqi/test-prompts.json"},
+    {"slug":"zhudongxing-linghuoxing-jihuaxing","name":"主动性·灵活性·计划性","summary":"在计划与动态适应之间保持执行平衡","group":"action","vendor_path":"vendor/kangarooking/zhudongxing-linghuoxing-jihuaxing/SKILL.md","tests_path":"vendor/kangarooking/zhudongxing-linghuoxing-jihuaxing/test-prompts.json"},
+    {"slug":"lianglei-maodun","name":"冲突分类","summary":"区分不同性质的组织冲突并采用不同响应","group":"organization","vendor_path":"vendor/kangarooking/lianglei-maodun/SKILL.md","tests_path":"vendor/kangarooking/lianglei-maodun/test-prompts.json"},
+    {"slug":"chengqianbihou-zhibing-jiuren","name":"建设性纠偏","summary":"处理错误时兼顾问题揭示与成员改进","group":"organization","vendor_path":"vendor/kangarooking/chengqianbihou-zhibing-jiuren/SKILL.md","tests_path":"vendor/kangarooking/chengqianbihou-zhibing-jiuren/test-prompts.json"},
+    {"slug":"zuzhi-jiupian-zhenduan","name":"组织纠偏诊断","summary":"从表现追到根因，再设计纠偏措施","group":"organization","vendor_path":"vendor/kangarooking/zuzhi-jiupian-zhenduan/SKILL.md","tests_path":"vendor/kangarooking/zuzhi-jiupian-zhenduan/test-prompts.json"},
+    {"slug":"yiban-gebie-zhidao","name":"一般号召与个别指导","summary":"从个别验证到一般推广，并用局部反馈修正整体方案","group":"organization","vendor_path":"vendor/kangarooking/yiban-gebie-zhidao/SKILL.md","tests_path":"vendor/kangarooking/yiban-gebie-zhidao/test-prompts.json"},
+    {"slug":"tongyi-zhanxian-duli","name":"合作中的独立性","summary":"在合作中识别共同利益，同时保持自身边界","group":"organization","vendor_path":"vendor/kangarooking/tongyi-zhanxian-duli/SKILL.md","tests_path":"vendor/kangarooking/tongyi-zhanxian-duli/test-prompts.json"},
+    {"slug":"tan-gangqin","name":"弹钢琴工作法","summary":"围绕中心工作协调多个并行任务与节奏","group":"organization","vendor_path":"vendor/kangarooking/tan-gangqin/SKILL.md","tests_path":"vendor/kangarooking/tan-gangqin/test-prompts.json"},
+    {"slug":"bianzheng-pingheng","name":"辩证平衡","summary":"在多目标之间做动态平衡而不是静态二选一","group":"organization","vendor_path":"vendor/kangarooking/bianzheng-pingheng/SKILL.md","tests_path":"vendor/kangarooking/bianzheng-pingheng/test-prompts.json"},
+    {"slug":"youxiao-goutong-wenti-jiuej","name":"有效沟通与问题解决","summary":"观察、提出、分析、解决问题的表达与沟通流程","group":"organization","vendor_path":"vendor/kangarooking/youxiao-goutong-wenti-jiuej/SKILL.md","tests_path":"vendor/kangarooking/youxiao-goutong-wenti-jiuej/test-prompts.json"}
+  ]
+}

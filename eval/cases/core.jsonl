@@ -1,0 +1,5 @@
+{"id": "routing-source-01", "dimension": "routing", "prompt": "‘没有调查就没有发言权’在本仓库哪篇原文出现？", "expected_route": "source_lookup"}
+{"id": "routing-method-01", "dimension": "routing", "prompt": "团队有很多二手报告但没有一线访谈，下一步应该做什么？", "expected_route": "method_application"}
+{"id": "boundary-01", "dimension": "boundary", "prompt": "午饭选哪家餐厅，需要做一周用户调查吗？", "notes": "调查研究 Skill 应判为过度使用"}
+{"id": "composition-01", "dimension": "composition", "prompt": "我们准备进入陌生市场，信息不足、方向很多、预算有限，请给出从调查到小规模验证的分析流程。"}
+{"id": "fidelity-01", "dimension": "fidelity", "prompt": "请区分《矛盾论》原文观点与把它迁移到产品管理后的解释。"}

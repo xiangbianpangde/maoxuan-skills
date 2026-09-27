@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "upstream": "leezythu/maoxuan-skill",
+  "pinned_commit": "4376a65020b1fd96af65052ccd30accaddedc3f1",
+  "frameworks": [
+    {"id":"contradiction-lens","name":"矛盾分析框架","purpose":"把复杂问题拆成相互作用的张力，识别当前主要矛盾和问题性质。","atomic_skills":["maodun-fenxi","maodun-techuxing","neiyin-juedinglun","bianzheng-pingheng"],"source_baseline":"leezythu: 矛盾分析法"},
+    {"id":"practice-knowledge-cycle","name":"实践认识循环","purpose":"在调查、信息加工、行动验证和认知修正之间建立闭环。","atomic_skills":["diaocha-yanjiu","shishiqiushi-sigao","shijian-renshilun","cong-zhanzheng-xuexi-zhanzheng","qunzhong-luxian"],"source_baseline":"leezythu: 实践认识循环"},
+    {"id":"protracted-strategy","name":"持久战略框架","purpose":"把长期不利局面分阶段处理，避免把所有阶段当成同一种任务。","atomic_skills":["chijiuzhan-san-jieduan","zhanlue-zhanshu-bianzheng","zhudongxing-linghuoxing-jihuaxing","zhanlue-miaoshi-zhanshu-zhongshi"],"source_baseline":"leezythu: 持久战略"},
+    {"id":"periphery-to-center","name":"边缘到中心/根据地框架","purpose":"在非暴力市场、组织变革或技术推广中先建立小范围高密度能力，再扩展。","atomic_skills":["xingxingzhihuo-genjudi","buduicheng-zhanlue","yiban-gebie-zhidao","jianmiezhan-jizhong-bingli"],"source_baseline":"leezythu: 农村包围城市"},
+    {"id":"coalition-boundary","name":"合作与边界框架","purpose":"识别共同利益、合作范围和必须保留的独立边界。","atomic_skills":["tongyi-zhanxian-duli","lianglei-maodun","bianzheng-pingheng"],"source_baseline":"leezythu: 统一战线"},
+    {"id":"feedback-from-people","name":"群众路线/用户反馈框架","purpose":"从一线意见中提炼规律，再返回实践验证，而不是把意见原样照搬。","atomic_skills":["qunzhong-luxian","diaocha-yanjiu","shishiqiushi-sigao","yiban-gebie-zhidao"],"source_baseline":"leezythu: 群众路线"},
+    {"id":"strategic-confidence-tactical-rigor","name":"战略信心与战术严谨","purpose":"在长期方向上避免被短期困难压垮，同时对具体风险保持严肃准备。","atomic_skills":["zhanlue-miaoshi-zhanshu-zhongshi","zhudongxing-linghuoxing-jihuaxing","chijiuzhan-san-jieduan"],"source_baseline":"leezythu: 纸老虎论/战略藐视战术重视"}
+  ]
+}

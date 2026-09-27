@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "generated_for": "xiangbianpangde/maoxuan-skills",
+  "sources": [
+    {
+      "id": "atomic",
+      "repo": "kangarooking/mao-selected-works-skill",
+      "branch": "main",
+      "commit": "5058fe41ad7acd8e04cc53de96a57a91938b67d1",
+      "license": "MIT",
+      "usage": "vendor 25 atomic SKILL.md + test-prompts.json"
+    },
+    {
+      "id": "framework",
+      "repo": "leezythu/maoxuan-skill",
+      "branch": "main",
+      "commit": "4376a65020b1fd96af65052ccd30accaddedc3f1",
+      "license": "MIT",
+      "usage": "vendor meta SKILL.md + research references; normalized into FRAMEWORKS.json"
+    },
+    {
+      "id": "retrieval-reference",
+      "repo": "henryczq/mao-selected-works-skill",
+      "branch": "master",
+      "commit": "98eb026e760e2daa71740c30b56f0c6a9ff950d0",
+      "license": "not-declared-in-root-at-audit-time",
+      "usage": "architecture reference only; code and corpus are not copied"
+    }
+  ],
+  "local_corpus": {
+    "path": "毛选md",
+    "volumes": "1-5",
+    "policy": "single source of truth for original-text retrieval"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "database": "index/maoxuan.sqlite3",
+  "corpus": "毛选md",
+  "embedding": {
+    "enabled": false,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "model": "BAAI/bge-m3",
+    "api_key_env": "MAOXUAN_API_KEY",
+    "batch_size": 16
+  },
+  "rerank": {
+    "enabled": false,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "model": "BAAI/bge-reranker-v2-m3",
+    "api_key_env": "MAOXUAN_API_KEY",
+    "top_n": 8
+  }
+}

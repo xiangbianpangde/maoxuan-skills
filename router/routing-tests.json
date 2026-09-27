@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "cases": [
+    {
+      "id": "r01",
+      "prompt": "《实践论》里‘实践—认识—再实践’具体在原文哪里？",
+      "expected_route": "source_lookup",
+      "expected_components": [
+        "retrieval"
+      ]
+    },
+    {
+      "id": "r02",
+      "prompt": "我们收到了大量用户反馈但互相矛盾，怎样加工成决策信息？",
+      "expected_route": "method_application",
+      "expected_framework": "practice-knowledge-cycle",
+      "expected_atomic": [
+        "shishiqiushi-sigao"
+      ]
+    },
+    {
+      "id": "r03",
+      "prompt": "公司同时有产品留存、销售承诺、交付和招聘问题，资源只能先解决一个，怎么分析？",
+      "expected_route": "composite_task",
+      "expected_composite": "complex-problem-solving"
+    },
+    {
+      "id": "r04",
+      "prompt": "我们准备进入一个陌生行业，手上只有三份咨询报告。",
+      "expected_route": "method_application",
+      "expected_atomic": [
+        "diaocha-yanjiu"
+      ]
+    },
+    {
+      "id": "r05",
+      "prompt": "给我解释《矛盾论》的历史背景，不要用它给现实政治建议。",
+      "expected_route": "source_lookup",
+      "expected_components": [
+        "retrieval"
+      ]
+    },
+    {
+      "id": "r06",
+      "prompt": "小团队面对大公司，如何在非暴力商业竞争中选择切入点？",
+      "expected_route": "composite_task",
+      "expected_composite": "strategy-analysis"
+    }
+  ]
+}
