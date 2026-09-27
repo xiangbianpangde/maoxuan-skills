@@ -5,11 +5,12 @@
 - 用途：25 个 Atomic Skills 与各自测试。
 - 锁定版本：`5058fe41ad7acd8e04cc53de96a57a91938b67d1`
 - 许可证：MIT（副本见 `licenses/kangarooking-MIT.txt`）。
-- 本项目通过 `scripts/sync_upstreams.py` 下载到 `vendor/kangarooking/`，并在其上增加 Router、Evidence、Composite 与 Eval，不修改上游作者归属。
+- 本项目通过 Git submodule 固定在 `vendor/kangarooking/`；`scripts/sync_upstreams.py` 只负责初始化与 commit 校验。Router、Evidence、Composite 与 Eval 位于本仓库自身，不修改上游作者归属。
 
 ## leezythu/maoxuan-skill
 
 - 用途：7 个核心心智模型、高层总体分析入口及研究参考。
+- 集成方式：Git submodule 固定在 `vendor/leezythu/`，由本仓库规范化为 Planner/Framework 层。
 - 锁定版本：`4376a65020b1fd96af65052ccd30accaddedc3f1`
 - 许可证：MIT（副本见 `licenses/leezythu-MIT.txt`）。
 - 本项目默认不采用“第一人称角色扮演”为运行方式，而是把 7 个模型规范化成 Planner/Framework 层。

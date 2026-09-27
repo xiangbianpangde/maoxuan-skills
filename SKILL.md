@@ -25,7 +25,7 @@ description: |
 执行：
 1. 先读取 `skills/frameworks/FRAMEWORKS.json` 选择一个高层框架。
 2. 再读取 `skills/atomic/CATALOG.json`，只选择必要的 1–4 个 Atomic Skills。
-3. 如果 `vendor/kangarooking/.../SKILL.md` 已同步，读取完整 Skill 的触发、执行和边界。
+3. 读取 `vendor/kangarooking/.../SKILL.md` 的完整触发、执行和边界；如果 submodule 尚未初始化，先执行 `python3 scripts/sync_upstreams.py`。
 4. 输出时明确标识“方法迁移/类比”，不要把现代案例写成原文结论。
 
 ### C. COMPOSITE_TASK
@@ -48,13 +48,13 @@ description: |
 
 ## 2. 原子 Skill
 
-见 `skills/atomic/CATALOG.json`。完整上游内容由：
+见 `skills/atomic/CATALOG.json`。完整上游内容以 Git submodule 固定在 `vendor/kangarooking/` 与 `vendor/leezythu/`。首次 clone 建议使用 `--recurse-submodules`；已有仓库可执行：
 
 ```bash
 python3 scripts/sync_upstreams.py
 ```
 
-同步到 `vendor/kangarooking/`，版本由 `upstream/UPSTREAM_LOCK.json` 锁定。
+脚本会初始化 submodule，并校验实际 HEAD 与 `upstream/UPSTREAM_LOCK.json` 完全一致。
 
 ## 3. 证据约束
 

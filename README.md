@@ -40,12 +40,16 @@ SKILL.md / Router
 - `retrieval/`：对 `毛选md/` 建立稳定 Source ID、SQLite 索引、关键词/可选向量/可选重排检索。
 - `evidence/`：把 Skill 中的来源与引用绑定回本地 corpus。
 - `eval/`：Routing / Fidelity / Citation / Composition / Task Gain 的评测骨架。
-- `scripts/sync_upstreams.py`：按固定 commit 同步两个 MIT 上游的 Skill 内容到 `vendor/`。
+- `.gitmodules` + `vendor/`：以 Git submodule 固定两个 MIT 上游 commit，避免复制漂移；`scripts/sync_upstreams.py` 负责初始化并校验版本。
 
 ## 快速开始
 
 ```bash
-# 1. 同步 MIT 上游能力层
+# 推荐：首次克隆时直接拉取固定版本的两个上游
+git clone --recurse-submodules https://github.com/xiangbianpangde/maoxuan-skills.git
+cd maoxuan-skills
+
+# 若已经普通 clone：初始化并校验 submodule
 python3 scripts/sync_upstreams.py
 
 # 2. 为本仓库现有毛选 Markdown 建索引
@@ -107,6 +111,6 @@ Composite Skill 不重新发明方法，而是明确：什么时候调用哪个 
 
 ## 上游与许可
 
-两个被同步到 `vendor/` 的方法论上游均为 MIT，许可证副本保存在 `upstream/licenses/`。`henryczq/mao-selected-works-skill` 仅作为检索架构参考，不复制其未明确许可的代码或语料。
+两个以 Git submodule 固定在 `vendor/` 的方法论上游均为 MIT，许可证副本保存在 `upstream/licenses/`。`henryczq/mao-selected-works-skill` 仅作为检索架构参考，不复制其未明确许可的代码或语料。
 
 本仓库 `毛选md/` 的文本来源和再分发许可应由仓库维护者单独核验；本项目不会用一个总 MIT License 覆盖第三方文本语料。
