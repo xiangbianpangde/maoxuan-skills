@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -23,6 +24,19 @@ ROUTING_PROFILES = ROOT / 'skills/atomic/ROUTING_PROFILES.json'
 FRAMEWORKS = ROOT / 'skills/frameworks/FRAMEWORKS.json'
 RESULTS_DIR = ROOT / 'eval/results'
 ROUTES = {'direct', 'source_lookup', 'method_application', 'composite_task', 'mixed'}
+GROUP_HINTS = {
+    'cognition': '问题性质、主要矛盾、内外因、信息加工与认知判断',
+    'research': '调查取证、一线反馈、事实补全与反馈闭环',
+    'strategy': '非暴力竞争、长期阶段、资源集中、差异化与局部突破',
+    'action': '行动学习、认知重启、执行主动性、长期信心与短期严谨',
+    'organization': '组织冲突、纠偏、试点推广、合作边界、多任务协调与沟通',
+}
+COMPOSITE_HINTS = {
+    'complex-problem-solving': '多问题、多阶段的端到端诊断、排序、验证与调整流程',
+    'research-and-decision': '从调查取证、信息加工到判断和实践验证的完整决策流程',
+    'strategy-analysis': '仅用于非暴力场景的多阶段战略分析、切入点与资源配置流程',
+    'organization-improvement': '组织问题的反馈、分类、根因、纠偏、试点与推广流程',
+}
 
 
 def ensure_atomic_dataset() -> None:
@@ -91,77 +105,153 @@ def stratified_sample(cases: list[dict], limit: int | None) -> list[dict]:
 def load_schema() -> dict:
     catalog = json.loads(CATALOG.read_text(encoding='utf-8'))
     profiles_doc = json.loads(ROUTING_PROFILES.read_text(encoding='utf-8'))
-    fw = json.loads(FRAMEWORKS.read_text(encoding='utf-8'))
-    composites = [p.parent.name for p in sorted((ROOT / 'skills/composite').glob('*/SKILL.md'))]
+    fw_doc = json.loads(FRAMEWORKS.read_text(encoding='utf-8'))
+    composites = {p.parent.name for p in sorted((ROOT / 'skills/composite').glob('*/SKILL.md'))}
+    skills = {x['slug']: x for x in catalog['skills']}
     profiles = {x['slug']: x for x in profiles_doc['profiles']}
-    slugs = {x['slug'] for x in catalog['skills']}
-    if set(profiles) != slugs:
-        missing = sorted(slugs - set(profiles))
-        extra = sorted(set(profiles) - slugs)
+    frameworks = {x['id']: x for x in fw_doc['frameworks']}
+    if set(profiles) != set(skills):
+        missing = sorted(set(skills) - set(profiles))
+        extra = sorted(set(profiles) - set(skills))
         raise ValueError(f'ROUTING_PROFILES/CATALOG mismatch missing={missing} extra={extra}')
+    groups: dict[str, list[str]] = {}
+    for x in catalog['skills']:
+        groups.setdefault(x['group'], []).append(x['slug'])
+    unknown_groups = set(groups) - set(GROUP_HINTS)
+    if unknown_groups:
+        raise ValueError(f'unknown catalog groups: {sorted(unknown_groups)}')
     return {
         'catalog': catalog,
+        'skills': skills,
         'profiles_doc': profiles_doc,
         'profiles': profiles,
-        'frameworks': fw,
-        'composites': set(composites),
-        'slugs': slugs,
-        'framework_ids': {x['id'] for x in fw['frameworks']},
+        'frameworks_doc': fw_doc,
+        'frameworks': frameworks,
+        'composites': composites,
+        'slugs': set(skills),
+        'groups': groups,
+        'group_ids': set(groups),
+        'framework_ids': set(frameworks),
     }
 
 
-def build_system_prompt(schema: dict) -> str:
-    skill_lines = [f"- {x['slug']} ({x['name']}): {x['summary']}" for x in schema['catalog']['skills']]
-    profile_lines = [
-        f"- {slug} | WHEN: {p['when']} | AVOID: {p['avoid']} | CONTRAST: {p['contrast']}"
-        for slug, p in schema['profiles'].items()
+def build_stage1_prompt(schema: dict) -> str:
+    skill_lines = [
+        f"- {x['slug']} [{x['group']}] {x['name']}: {x['summary']}"
+        for x in schema['catalog']['skills']
     ]
-    framework_lines = [f"- {x['id']}: {', '.join(x['atomic_skills'])}" for x in schema['frameworks']['frameworks']]
-    composites = ', '.join(sorted(schema['composites']))
-    specificity = schema['profiles_doc'].get('policy', {}).get('specificity_rule', '')
-    direct_default = schema['profiles_doc'].get('policy', {}).get('direct_default', '')
-    return f"""You are the routing evaluator for a layered Selected Works methodology skill system.
-Classify the user's request; do not answer the substantive question.
+    group_lines = [f"- {g}: {GROUP_HINTS[g]}" for g in schema['groups']]
+    framework_lines = [
+        f"- {fid}: {f['purpose']}"
+        for fid, f in schema['frameworks'].items()
+    ]
+    composite_lines = [
+        f"- {cid}: {COMPOSITE_HINTS.get(cid, cid)}"
+        for cid in sorted(schema['composites'])
+    ]
+    return f"""You are Stage 1 (coarse router) for a layered Selected Works methodology skill system.
+Classify the request and shortlist candidates. Do NOT answer the substantive question.
 
-First apply a skill-necessity gate. Default to direct when this special methodology system does not materially improve the task.
-Do NOT select a methodology skill merely because the user has a problem, decision, disagreement, bug, or learning request.
-Profile policy: {direct_default}
+First apply a skill-necessity gate. Default to direct when this methodology system does not materially improve the task.
+Do not select a methodology route merely because the user has a problem, bug, disagreement, preference, or learning request.
 
 Routes:
-- direct: no Selected Works retrieval or methodology skill is needed.
-- source_lookup: original text, citation, article meaning, textual/historical explanation. components MUST include \"retrieval\".
-- method_application: a focused non-political problem where one framework and 1-4 atomic skills materially improve analysis.
-- composite_task: a genuinely multi-stage non-political task needing an end-to-end named composite workflow, not merely a task where several atomic skills are relevant.
-- mixed: both original-source evidence and method application are materially required; components MUST include \"retrieval\".
+- direct: ordinary task; no source retrieval or methodology Skill is materially needed.
+- source_lookup: original text, citation, article meaning, textual/historical explanation. components must include \"retrieval\".
+- method_application: a focused non-political problem where a small set of methods materially improves analysis.
+- composite_task: genuinely end-to-end or multi-stage work matching one named composite workflow.
+- mixed: both source evidence and method application are materially required. components must include \"retrieval\".
 
-Route promotion rule:
-- Prefer method_application when one focused mechanism or a small atomic set is sufficient.
-- Promote to composite_task only when the user asks for an end-to-end analysis/plan spanning multiple distinct stages or workstreams and a named composite matches the requested workflow.
-- Do not promote merely because the situation is important, unfamiliar, or could benefit from several techniques.
+Promotion rule:
+- Prefer method_application for one focused mechanism or a small atomic set.
+- Use composite_task only for a request spanning multiple distinct stages/workstreams and matching a named composite.
+- Do not use composite_task merely because a task is important or complex.
 
-Use direct for ordinary tutorials, routine verification/calculation, a single well-scoped implementation bug, aesthetic/formatting choices, and one-off preferences unless deeper methodology is materially useful.
-Choose the smallest sufficient set. Never invent or alter a slug. Select at most 4 atomic skills.
+Skill groups:
+{chr(10).join(group_lines)}
 
-Atomic skills and summaries:
+Atomic Skill catalog (short summaries only):
 {chr(10).join(skill_lines)}
 
-Atomic routing profiles (authoritative applicability boundaries):
-{chr(10).join(profile_lines)}
-
-Specificity policy:
-{specificity}
-When a specialized mechanism and a generic analytical skill both fit, include the specialized mechanism first. Generic skills such as maodun-fenxi, maodun-techuxing, neiyin-juedinglun, and bianzheng-pingheng should supplement rather than displace a more specific mechanism.
-
-Framework -> atomic map:
+Frameworks:
 {chr(10).join(framework_lines)}
-Composite workflows: {composites}
 
-Political neutrality boundary: for current politics, elections, parties, officials, legislation, ballot measures, or political persuasion, do not route into strategic persuasion/action skills. Source lookup and neutral factual comparison are allowed.
-Historical military-origin skills may only be routed for explicitly non-violent domains such as product, engineering, research, project management, organizational learning, or lawful business competition.
+Composite workflows:
+{chr(10).join(composite_lines)}
+
+Shortlisting rules:
+- candidate_groups: at most 2 groups.
+- candidate_skills: at most 6 atomic slugs most likely to contain the final answer. Prefer recall over exact ordering.
+- framework_candidates: at most 2 framework IDs.
+- For direct/source_lookup, candidate_groups/candidate_skills/framework_candidates must be empty.
+- Never invent or alter IDs.
+
+Political neutrality boundary:
+- Current politics, elections, parties, officials, legislation, ballot measures, or political persuasion must not enter strategic persuasion/action methods.
+- Neutral factual/source analysis is allowed.
+- Military-origin methods may only be abstracted to explicit non-violent domains such as engineering, research, product, project management, organizational learning, or lawful business competition.
 
 Return JSON only:
-{{"route":"direct|source_lookup|method_application|composite_task|mixed","framework":null,"atomic_skills":[],"composite":null,"components":[]}}
-route must be exactly ONE enum value, never the enum expression itself. Do not include prose outside JSON."""
+{{\"route\":\"direct|source_lookup|method_application|composite_task|mixed\",\"candidate_groups\":[],\"candidate_skills\":[],\"framework_candidates\":[],\"composite\":null,\"components\":[]}}
+"""
+
+
+def _candidate_profile_line(slug: str, schema: dict) -> str:
+    s = schema['skills'][slug]
+    p = schema['profiles'][slug]
+    return (
+        f"- {slug} ({s['name']}) [{s['group']}]\n"
+        f"  SUMMARY: {s['summary']}\n"
+        f"  WHEN: {p['when']}\n"
+        f"  AVOID: {p['avoid']}\n"
+        f"  CONTRAST: {p['contrast']}"
+    )
+
+
+def build_stage2_prompt(schema: dict, coarse: dict, candidates: list[str]) -> str:
+    profile_lines = [_candidate_profile_line(slug, schema) for slug in candidates]
+    framework_lines = [
+        f"- {fid}: {f['purpose']} | atomic={','.join(f['atomic_skills'])}"
+        for fid, f in schema['frameworks'].items()
+    ]
+    composite_lines = [
+        f"- {cid}: {COMPOSITE_HINTS.get(cid, cid)}"
+        for cid in sorted(schema['composites'])
+    ]
+    specificity = schema['profiles_doc'].get('policy', {}).get('specificity_rule', '')
+    return f"""You are Stage 2 (fine router) for a layered Selected Works methodology skill system.
+Do NOT answer the substantive question. Produce the final routing JSON.
+
+Stage 1 decision:
+{json.dumps(coarse, ensure_ascii=False)}
+
+Only the following Atomic Skills are eligible in this fine-routing pass:
+{chr(10).join(profile_lines)}
+
+Rules:
+- Select 1-4 Atomic Skills only from the eligible list, and only when each materially helps.
+- Specialized mechanisms outrank generic analytical Skills.
+- {specificity}
+- Keep the Stage 1 route unless the detailed candidate boundaries clearly show it is wrong.
+- method_application is preferred for a focused problem.
+- composite_task is only for a genuinely multi-stage/end-to-end workflow, not merely because multiple atomic Skills are relevant.
+- If route is direct or source_lookup, atomic_skills must be empty.
+- source_lookup and mixed must include \"retrieval\" in components.
+
+Frameworks (you may choose the best one or null):
+{chr(10).join(framework_lines)}
+
+Composite workflows:
+{chr(10).join(composite_lines)}
+
+Political neutrality boundary:
+- Do not convert current politics/elections/parties/officials/legislation/political persuasion into strategic action advice.
+- Neutral source/factual analysis is allowed.
+- Military-origin methods are limited to explicit non-violent abstraction.
+
+Return JSON only:
+{{\"route\":\"direct|source_lookup|method_application|composite_task|mixed\",\"framework\":null,\"atomic_skills\":[],\"composite\":null,\"components\":[]}}
+"""
 
 
 def parse_json_object(text: str) -> dict:
@@ -215,54 +305,171 @@ def post_chat(base_url: str, api_key: str | None, model: str, system: str, promp
     return payload['choices'][0]['message']['content'], payload
 
 
-def _near_slug(value: str, allowed: set[str]) -> str | None:
+def _near_value(value: str, allowed: set[str], threshold: float = .92) -> str | None:
     scored = sorted(((difflib.SequenceMatcher(None, value, x).ratio(), x) for x in allowed), reverse=True)
-    if not scored or scored[0][0] < .92:
+    if not scored or scored[0][0] < threshold:
         return None
     if len(scored) > 1 and scored[0][0] - scored[1][0] < .04:
         return None
     return scored[0][1]
 
 
-def normalize_validate(pred: dict, schema: dict) -> tuple[dict, list[str], list[str]]:
-    out = {
-        'route': pred.get('route'),
-        'framework': pred.get('framework'),
-        'atomic_skills': pred.get('atomic_skills') if isinstance(pred.get('atomic_skills'), list) else [],
-        'composite': pred.get('composite'),
-        'components': pred.get('components') if isinstance(pred.get('components'), list) else [],
-    }
-    corrections = []
-    errors = []
-    atoms = []
-    for raw in out['atomic_skills']:
+def _normalize_string_list(values, allowed: set[str], label: str, max_items: int, corrections: list[str], errors: list[str]) -> list[str]:
+    if not isinstance(values, list):
+        errors.append(f'{label} must be a list')
+        return []
+    out = []
+    for raw in values:
         if not isinstance(raw, str):
-            errors.append('atomic skill must be a string')
+            errors.append(f'{label} item must be a string')
             continue
-        if raw in schema['slugs']:
-            atoms.append(raw)
+        if raw in allowed:
+            out.append(raw)
             continue
-        fixed = _near_slug(raw, schema['slugs'])
+        fixed = _near_value(raw, allowed)
         if fixed:
-            atoms.append(fixed)
-            corrections.append(f'atomic:{raw}->{fixed}')
+            out.append(fixed)
+            corrections.append(f'{label}:{raw}->{fixed}')
         else:
-            errors.append(f'unknown atomic skill {raw}')
-    out['atomic_skills'] = list(dict.fromkeys(atoms))
-    if out['route'] not in ROUTES:
-        errors.append(f"invalid route {out['route']}")
-    if out['framework'] is not None and out['framework'] not in schema['framework_ids']:
-        errors.append(f"unknown framework {out['framework']}")
-    if out['composite'] is not None and out['composite'] not in schema['composites']:
-        errors.append(f"unknown composite {out['composite']}")
-    if len(out['atomic_skills']) > 4:
-        errors.append('more than 4 atomic skills')
-    if out['route'] in {'direct', 'source_lookup'} and out['atomic_skills']:
-        errors.append(f"{out['route']} must not select atomic skills")
-    if out['route'] == 'composite_task' and not out['composite']:
+            errors.append(f'unknown {label} {raw}')
+    out = list(dict.fromkeys(out))
+    if len(out) > max_items:
+        errors.append(f'{label} has more than {max_items} items')
+    return out[:max_items]
+
+
+def normalize_stage1(pred: dict, schema: dict) -> tuple[dict, list[str], list[str]]:
+    corrections: list[str] = []
+    errors: list[str] = []
+    route = pred.get('route')
+    if route not in ROUTES:
+        errors.append(f'invalid route {route}')
+    groups = _normalize_string_list(pred.get('candidate_groups', []), schema['group_ids'], 'candidate_group', 2, corrections, errors)
+    skills = _normalize_string_list(pred.get('candidate_skills', []), schema['slugs'], 'candidate_skill', 6, corrections, errors)
+    fws = _normalize_string_list(pred.get('framework_candidates', []), schema['framework_ids'], 'framework_candidate', 2, corrections, errors)
+    composite = pred.get('composite')
+    if composite is not None and composite not in schema['composites']:
+        fixed = _near_value(composite, schema['composites'])
+        if fixed:
+            corrections.append(f'composite:{composite}->{fixed}')
+            composite = fixed
+        else:
+            errors.append(f'unknown composite {composite}')
+    components = pred.get('components') if isinstance(pred.get('components'), list) else []
+    components = [x for x in components if isinstance(x, str)]
+    out = {
+        'route': route,
+        'candidate_groups': groups,
+        'candidate_skills': skills,
+        'framework_candidates': fws,
+        'composite': composite,
+        'components': list(dict.fromkeys(components)),
+    }
+    if route in {'direct', 'source_lookup'}:
+        if groups or skills or fws:
+            corrections.append('cleared methodology candidates for non-method route')
+        out['candidate_groups'] = []
+        out['candidate_skills'] = []
+        out['framework_candidates'] = []
+        out['composite'] = None
+    elif route in {'method_application', 'mixed', 'composite_task'} and not (groups or skills or fws):
+        errors.append('method route requires at least one candidate group/skill/framework')
+    if route == 'composite_task' and not composite:
         errors.append('composite_task requires composite')
-    if out['route'] == 'method_application' and out['composite'] is not None:
+    if route == 'method_application' and composite is not None:
         errors.append('method_application must not set composite')
+    if route in {'source_lookup', 'mixed'} and 'retrieval' not in out['components']:
+        out['components'].append('retrieval')
+        corrections.append('added retrieval component')
+    if route == 'direct':
+        out['components'] = []
+    return out, corrections, errors
+
+
+def _contrast_neighbors(slug: str, schema: dict) -> list[str]:
+    text = schema['profiles'][slug].get('contrast', '')
+    found = []
+    for other in schema['catalog']['skills']:
+        other_slug = other['slug']
+        if other_slug != slug and re.search(rf'(?<![A-Za-z0-9_-]){re.escape(other_slug)}(?![A-Za-z0-9_-])', text):
+            found.append(other_slug)
+    return found
+
+
+def expand_candidates(coarse: dict, schema: dict, max_candidates: int = 10) -> list[str]:
+    ranked: list[str] = []
+
+    def add(slug: str) -> None:
+        if slug in schema['slugs'] and slug not in ranked:
+            ranked.append(slug)
+
+    for slug in coarse.get('candidate_skills', []):
+        add(slug)
+    for fid in coarse.get('framework_candidates', []):
+        for slug in schema['frameworks'][fid]['atomic_skills']:
+            add(slug)
+    seed = list(ranked)
+    for slug in seed:
+        for neighbor in _contrast_neighbors(slug, schema):
+            add(neighbor)
+    for group in coarse.get('candidate_groups', []):
+        for slug in schema['groups'].get(group, []):
+            add(slug)
+    if len(ranked) < 5:
+        for slug in seed:
+            group = schema['skills'][slug]['group']
+            for peer in schema['groups'].get(group, []):
+                add(peer)
+    return ranked[:max_candidates]
+
+
+def normalize_final(pred: dict, schema: dict, allowed_candidates: set[str] | None = None) -> tuple[dict, list[str], list[str]]:
+    corrections: list[str] = []
+    errors: list[str] = []
+    route = pred.get('route')
+    if route not in ROUTES:
+        errors.append(f'invalid route {route}')
+    atoms = _normalize_string_list(pred.get('atomic_skills', []), schema['slugs'], 'atomic_skill', 4, corrections, errors)
+    if allowed_candidates is not None:
+        outside = [x for x in atoms if x not in allowed_candidates]
+        if outside:
+            errors.append('atomic skill outside candidate pool: ' + ','.join(outside))
+    framework = pred.get('framework')
+    if framework is not None and framework not in schema['framework_ids']:
+        fixed = _near_value(framework, schema['framework_ids'])
+        if fixed:
+            corrections.append(f'framework:{framework}->{fixed}')
+            framework = fixed
+        else:
+            errors.append(f'unknown framework {framework}')
+    composite = pred.get('composite')
+    if composite is not None and composite not in schema['composites']:
+        fixed = _near_value(composite, schema['composites'])
+        if fixed:
+            corrections.append(f'composite:{composite}->{fixed}')
+            composite = fixed
+        else:
+            errors.append(f'unknown composite {composite}')
+    components = pred.get('components') if isinstance(pred.get('components'), list) else []
+    components = list(dict.fromkeys(x for x in components if isinstance(x, str)))
+    out = {
+        'route': route,
+        'framework': framework,
+        'atomic_skills': atoms,
+        'composite': composite,
+        'components': components,
+    }
+    if route in {'direct', 'source_lookup'} and atoms:
+        errors.append(f'{route} must not select atomic skills')
+    if route == 'composite_task' and not composite:
+        errors.append('composite_task requires composite')
+    if route == 'method_application' and composite is not None:
+        errors.append('method_application must not set composite')
+    if route in {'source_lookup', 'mixed'} and 'retrieval' not in out['components']:
+        out['components'].append('retrieval')
+        corrections.append('added retrieval component')
+    if route == 'direct':
+        out['components'] = []
     return out, corrections, errors
 
 
@@ -322,42 +529,108 @@ def _repair_prompt(case_prompt: str, problem: str, previous: str) -> str:
     )
 
 
-def run_one(case: dict, args, system: str, schema: dict) -> dict:
-    started = time.perf_counter()
-    payloads = []
+def _call_and_normalize(case_prompt: str, args, system: str, normalizer, payloads: list[dict]) -> tuple[dict, list[str], list[str], bool, dict]:
     repair_attempted = False
-    result = {'id': case['id'], 'benchmark_level': case['benchmark_level'], 'type': case.get('type'), 'prompt': case['prompt']}
+    content, payload = post_chat(args.base_url, args.api_key, args.model, system, case_prompt, args.timeout, not args.no_response_format)
+    payloads.append(payload)
     try:
-        content, payload = post_chat(args.base_url, args.api_key, args.model, system, case['prompt'], args.timeout, not args.no_response_format)
-        payloads.append(payload)
-        try:
-            raw = parse_json_object(content)
-        except ValueError as parse_error:
-            repair_attempted = True
-            repair = _repair_prompt(case['prompt'], str(parse_error), content)
-            content2, payload2 = post_chat(args.base_url, args.api_key, args.model, system, repair, args.timeout, not args.no_response_format)
-            payloads.append(payload2)
-            raw = parse_json_object(content2)
-        pred, corrections, errors = normalize_validate(raw, schema)
-        first_errors = list(errors)
-        if errors:
-            repair_attempted = True
-            repair = _repair_prompt(case['prompt'], json.dumps(errors, ensure_ascii=False), json.dumps(raw, ensure_ascii=False))
-            content2, payload2 = post_chat(args.base_url, args.api_key, args.model, system, repair, args.timeout, not args.no_response_format)
-            payloads.append(payload2)
-            raw2 = parse_json_object(content2)
-            pred2, corr2, errors2 = normalize_validate(raw2, schema)
-            raw, pred, corrections, errors = raw2, pred2, corrections + corr2, errors2
-        passed, reasons = score_case(case, pred, errors)
+        raw = parse_json_object(content)
+    except ValueError as parse_error:
+        repair_attempted = True
+        repair = _repair_prompt(case_prompt, str(parse_error), content)
+        content2, payload2 = post_chat(args.base_url, args.api_key, args.model, system, repair, args.timeout, not args.no_response_format)
+        payloads.append(payload2)
+        raw = parse_json_object(content2)
+    pred, corrections, errors = normalizer(raw)
+    initial_errors = list(errors)
+    if errors:
+        repair_attempted = True
+        repair = _repair_prompt(case_prompt, json.dumps(errors, ensure_ascii=False), json.dumps(raw, ensure_ascii=False))
+        content2, payload2 = post_chat(args.base_url, args.api_key, args.model, system, repair, args.timeout, not args.no_response_format)
+        payloads.append(payload2)
+        raw2 = parse_json_object(content2)
+        pred2, corr2, errors2 = normalizer(raw2)
+        raw, pred, corrections, errors = raw2, pred2, corrections + corr2, errors2
+    return pred, corrections, errors, repair_attempted, {'raw': raw, 'initial_errors': initial_errors}
+
+
+def _final_from_coarse(coarse: dict) -> dict:
+    return {
+        'route': coarse['route'],
+        'framework': None,
+        'atomic_skills': [],
+        'composite': None,
+        'components': list(coarse.get('components') or []),
+    }
+
+
+def run_one(case: dict, args, coarse_system: str, schema: dict) -> dict:
+    started = time.perf_counter()
+    payloads: list[dict] = []
+    corrections: list[str] = []
+    repair_count = 0
+    result = {
+        'id': case['id'],
+        'benchmark_level': case['benchmark_level'],
+        'type': case.get('type'),
+        'prompt': case['prompt'],
+        'architecture': 'two-stage-v5',
+    }
+    try:
+        coarse, corr1, err1, repaired1, meta1 = _call_and_normalize(
+            case['prompt'], args, coarse_system,
+            lambda raw: normalize_stage1(raw, schema),
+            payloads,
+        )
+        corrections.extend('stage1:' + x for x in corr1)
+        repair_count += int(repaired1)
+        result['coarse_prediction'] = coarse
+        result['coarse_raw_prediction'] = meta1['raw']
+        result['coarse_initial_validation_errors'] = meta1['initial_errors']
+        if err1:
+            pred = _final_from_coarse(coarse)
+            final_errors = ['stage1: ' + x for x in err1]
+            result['candidate_pool'] = []
+            result['stage2_used'] = False
+        elif coarse['route'] in {'direct', 'source_lookup'}:
+            pred = _final_from_coarse(coarse)
+            pred, corr_final, final_errors = normalize_final(pred, schema)
+            corrections.extend('final:' + x for x in corr_final)
+            result['candidate_pool'] = []
+            result['stage2_used'] = False
+        else:
+            candidates = expand_candidates(coarse, schema)
+            if not candidates:
+                pred = _final_from_coarse(coarse)
+                final_errors = ['stage2 candidate pool is empty']
+                result['candidate_pool'] = []
+                result['stage2_used'] = False
+            else:
+                result['candidate_pool'] = candidates
+                result['stage2_used'] = True
+                fine_system = build_stage2_prompt(schema, coarse, candidates)
+                fine, corr2, err2, repaired2, meta2 = _call_and_normalize(
+                    case['prompt'], args, fine_system,
+                    lambda raw: normalize_final(raw, schema, set(candidates)),
+                    payloads,
+                )
+                corrections.extend('stage2:' + x for x in corr2)
+                repair_count += int(repaired2)
+                pred = fine
+                final_errors = err2
+                result['fine_raw_prediction'] = meta2['raw']
+                result['fine_initial_validation_errors'] = meta2['initial_errors']
+                result['fine_prompt_chars'] = len(fine_system)
+        passed, reasons = score_case(case, pred, final_errors)
         result.update({
-            'raw_prediction': raw,
             'prediction': pred,
             'passed': passed,
             'reasons': reasons,
-            'validation_errors': errors,
-            'initial_validation_errors': first_errors,
+            'validation_errors': final_errors,
             'corrections': corrections,
-            'repair_attempted': repair_attempted,
+            'repair_attempted': repair_count > 0,
+            'repair_count': repair_count,
+            'stage_calls': len(payloads),
             'latency_s': round(time.perf_counter() - started, 3),
             'usage': usage_total(payloads),
         })
@@ -368,7 +641,9 @@ def run_one(case: dict, args, system: str, schema: dict) -> dict:
             'reasons': [str(e)],
             'latency_s': round(time.perf_counter() - started, 3),
             'error': type(e).__name__,
-            'repair_attempted': repair_attempted,
+            'repair_attempted': repair_count > 0,
+            'repair_count': repair_count,
+            'stage_calls': len(payloads),
             'usage': usage_total(payloads),
         })
     return result
@@ -397,7 +672,10 @@ def summarize(results: list[dict]) -> dict:
     lats = [r['latency_s'] for r in results if isinstance(r.get('latency_s'), (int, float))]
     toks = [(r.get('usage') or {}).get('total_tokens') for r in results]
     toks = [x for x in toks if isinstance(x, (int, float))]
+    pools = [len(r.get('candidate_pool') or []) for r in results if r.get('stage2_used')]
+    stage_calls = [r.get('stage_calls', 0) for r in results]
     return {
+        'architecture': 'two-stage-v5',
         'cases_total': len(results),
         'scored': len(scored),
         'passed': passed,
@@ -405,15 +683,18 @@ def summarize(results: list[dict]) -> dict:
         'by_level': by_level,
         'by_type': by_type,
         'errors': sum(bool(r.get('error')) for r in results),
-        'repairs': sum(bool(r.get('repair_attempted')) for r in results),
+        'repairs': sum(r.get('repair_count', 0) for r in results),
         'normalizations': sum(bool(r.get('corrections')) for r in results),
+        'stage2_calls': sum(bool(r.get('stage2_used')) for r in results),
+        'avg_candidate_pool': round(sum(pools) / len(pools), 2) if pools else 0,
+        'avg_stage_calls': round(sum(stage_calls) / len(stage_calls), 2) if stage_calls else 0,
         'avg_latency_s': round(sum(lats) / len(lats), 3) if lats else None,
         'total_tokens': int(sum(toks)) if toks else None,
     }
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description='Run unified routing benchmark against an OpenAI-compatible endpoint.')
+    ap = argparse.ArgumentParser(description='Run two-stage routing benchmark against an OpenAI-compatible endpoint.')
     ap.add_argument('--base-url', default=os.getenv('MAOXUAN_BENCH_BASE_URL'))
     ap.add_argument('--api-key', default=os.getenv('MAOXUAN_BENCH_API_KEY'))
     ap.add_argument('--model', default=os.getenv('MAOXUAN_BENCH_MODEL'))
@@ -426,15 +707,28 @@ def main() -> None:
     args = ap.parse_args()
     cases = stratified_sample(load_cases(), args.limit)
     schema = load_schema()
-    system = build_system_prompt(schema)
+    coarse_system = build_stage1_prompt(schema)
     if args.dry_run:
         counts = {}
         for c in cases:
             counts[c['type']] = counts.get(c['type'], 0) + 1
+        sample_coarse = {
+            'route': 'method_application',
+            'candidate_groups': ['organization'],
+            'candidate_skills': schema['groups']['organization'][:4],
+            'framework_candidates': [],
+            'composite': None,
+            'components': [],
+        }
+        sample_pool = expand_candidates(sample_coarse, schema)
+        fine_sample = build_stage2_prompt(schema, sample_coarse, sample_pool)
         print(json.dumps({
             'ok': True,
+            'architecture': 'two-stage-v5',
             'cases': len(cases),
-            'system_prompt_chars': len(system),
+            'coarse_prompt_chars': len(coarse_system),
+            'sample_fine_prompt_chars': len(fine_sample),
+            'sample_candidate_pool': len(sample_pool),
             'routing_profiles': len(schema['profiles']),
             'atomic_cases': sum(c['benchmark_level'] == 'atomic' for c in cases),
             'system_router_cases': sum(c['benchmark_level'] == 'system_router' for c in cases),
@@ -444,7 +738,7 @@ def main() -> None:
     if not args.base_url or not args.model:
         ap.error('set --base-url and --model')
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.workers)) as ex:
-        results = list(ex.map(lambda c: run_one(c, args, system, schema), cases))
+        results = list(ex.map(lambda c: run_one(c, args, coarse_system, schema), cases))
     summary = summarize(results)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime('%Y%m%d-%H%M%S')
@@ -453,7 +747,10 @@ def main() -> None:
         for r in results:
             f.write(json.dumps(r, ensure_ascii=False) + '\n')
     summary_path = out.with_suffix('.summary.json')
-    summary_path.write_text(json.dumps({'model': args.model, 'base_url': args.base_url, 'summary': summary}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    summary_path.write_text(
+        json.dumps({'model': args.model, 'base_url': args.base_url, 'summary': summary}, ensure_ascii=False, indent=2) + '\n',
+        encoding='utf-8',
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(out)
     print(summary_path)
