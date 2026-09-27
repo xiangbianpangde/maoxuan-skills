@@ -45,6 +45,19 @@ jobs:
       - name: Benchmark harness dry run
         run: python3 eval/run_router_benchmark.py --dry-run
 
+      - name: Held-out harness dry run
+        run: |
+          python3 eval/run_heldout_benchmark.py --architecture catalog-single --dry-run
+          python3 eval/run_heldout_benchmark.py --architecture two-stage-v5 --dry-run
+          python3 - <<'PY'
+          import hashlib, pathlib
+          p = pathlib.Path('eval/heldout/router-heldout-v1.jsonl')
+          got = hashlib.sha256(p.read_bytes()).hexdigest()
+          expected = '3ff1154048f2f2c3c218074d66bb8ece3d95257a0557c7c5a5c45f9c9d23cdfb'
+          assert got == expected, (got, expected)
+          print('held-out SHA256 OK', got)
+          PY
+
       - name: Build corpus index
         run: python3 retrieval/build_index.py
 
