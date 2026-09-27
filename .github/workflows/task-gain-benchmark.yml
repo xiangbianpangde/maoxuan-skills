@@ -1,0 +1,103 @@
+name: task-gain-benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: OpenAI-compatible base URL (usually ends with /v1)
+        required: true
+        default: https://api.minimaxi.com/v1
+      model:
+        description: Generation model
+        required: true
+        default: minimax-m3
+      judge_model:
+        description: Optional judge model on the same endpoint; blank uses generation model
+        required: false
+        default: ''
+      workers:
+        description: Parallel generation/router workers
+        required: true
+        default: '4'
+      judge_workers:
+        description: Parallel judge workers
+        required: true
+        default: '2'
+      no_response_format:
+        description: Disable response_format=json_object for judge/router calls
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  task-gain:
+    runs-on: ubuntu-latest
+    env:
+      BENCH_BASE_URL: ${{ inputs.base_url }}
+      BENCH_MODEL: ${{ inputs.model }}
+      JUDGE_MODEL: ${{ inputs.judge_model }}
+      BENCH_WORKERS: ${{ inputs.workers }}
+      JUDGE_WORKERS: ${{ inputs.judge_workers }}
+      BENCH_API_KEY: ${{ secrets.MAOXUAN_BENCH_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify pinned upstreams
+        run: python3 scripts/sync_upstreams.py
+
+      - name: Verify frozen Task Gain inputs
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          freeze = json.loads(pathlib.Path('eval/task_gain/TASK_GAIN_FREEZE.json').read_text())
+          for path, key in [
+              ('eval/task_gain/tasks-v1.jsonl', 'tasks_sha256'),
+              ('eval/task_gain/rubric-v1.json', 'rubric_sha256'),
+          ]:
+              got = hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+              assert got == freeze[key], (path, got, freeze[key])
+              print('OK', path, got)
+          PY
+
+      - name: Build local corpus index
+        run: python3 retrieval/build_index.py
+
+      - name: Run Task Gain benchmark
+        env:
+          NO_RESPONSE_FORMAT: ${{ inputs.no_response_format }}
+        run: |
+          EXTRA=()
+          if [ "$NO_RESPONSE_FORMAT" = "true" ]; then EXTRA+=(--no-response-format); fi
+          JUDGE=()
+          if [ -n "$JUDGE_MODEL" ]; then JUDGE+=(--judge-model "$JUDGE_MODEL"); fi
+          python3 eval/run_task_gain.py \
+            --base-url "$BENCH_BASE_URL" \
+            --api-key "$BENCH_API_KEY" \
+            --model "$BENCH_MODEL" \
+            --workers "$BENCH_WORKERS" \
+            --judge-workers "$JUDGE_WORKERS" \
+            --output eval/results/task-gain-v1.jsonl \
+            "${JUDGE[@]}" \
+            "${EXTRA[@]}"
+
+      - name: Show summary
+        run: cat eval/results/task-gain-v1.summary.json
+
+      - name: Upload Task Gain results
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-gain-${{ github.run_id }}
+          path: |
+            eval/results/task-gain-v1.jsonl
+            eval/results/task-gain-v1.summary.json

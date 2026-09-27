@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "suite": "task-gain-v1",
+  "score_scale": {
+    "min": 0,
+    "max": 4
+  },
+  "dimensions": {
+    "factual_correctness": "事实、技术判断和因果关系是否正确，是否避免无依据断言。",
+    "method_fit": "分析方法是否真正匹配问题机制；不奖励术语堆砌或机械套模板。",
+    "analysis_structure": "输出是否把关键变量、冲突、阶段或决策点组织清楚；只评可见答案质量，不要求隐藏思维过程。",
+    "actionability": "是否给出可执行步骤、优先级、验证信号、停止/继续条件或责任闭环。",
+    "evidence_fidelity": "涉及本地原文/证据时，是否忠实使用提供证据、可核验引用 Source ID，并区分原文与现代解释。",
+    "boundary_compliance": "是否遵守任务边界、非暴力迁移、历史文本与现代应用的区分，不扩展到不当现实政治动员。",
+    "overall_utility": "综合来看，这个答案对用户完成任务是否真正有帮助。"
+  },
+  "anchors": {
+    "0": "基本失败、严重错误或没有回答任务。",
+    "1": "有少量相关内容，但存在关键缺陷、错误或不可执行。",
+    "2": "部分满足要求，核心方向可用，但遗漏明显。",
+    "3": "高质量完成，只有次要遗漏或表达问题。",
+    "4": "完整、准确、针对性强，满足参考要求且没有实质性缺陷。"
+  },
+  "primary_metric": "每个任务按其 weights 对 7 个维度做加权平均，归一化到 0-100；再对 30 个任务等权平均。",
+  "primary_hypothesis": "full-system 相对 vanilla 的平均配对 Task Gain。",
+  "meaningful_gain_threshold_points": 5.0,
+  "secondary_comparisons": [
+    "retrieval-only vs vanilla（重点看 source-evidence）",
+    "atomic vs vanilla（重点看现代方法任务）",
+    "framework-atomic vs atomic",
+    "full-system vs framework-atomic"
+  ],
+  "judge_protocol": {
+    "blind_variants": true,
+    "variant_labels": "每题使用 task-id 哈希确定的 A-E 随机映射，judge 看不到真实变体名。",
+    "style_rule": "不奖励毛选术语、角色扮演或历史文风；只奖励任务质量。",
+    "source_rule": "伪造或无法由提供证据支撑的 Source ID 应显著降低 evidence_fidelity。",
+    "same_model_note": "允许 judge_model 与 generation model 相同，但结果必须记录这一限制；可后续用独立 judge 做复制验证。"
+  },
+  "reporting": {
+    "paired_bootstrap_reps": 2000,
+    "confidence_interval": 0.95,
+    "category_breakdown": true,
+    "token_and_latency": true,
+    "citation_validity_secondary": true
+  }
+}
