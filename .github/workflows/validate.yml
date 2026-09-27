@@ -1,0 +1,63 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify pinned upstreams
+        run: python3 scripts/sync_upstreams.py
+
+      - name: Compile Python
+        run: python3 -m py_compile retrieval/*.py scripts/*.py eval/*.py
+
+      - name: Validate JSON
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          for p in pathlib.Path('.').rglob('*.json'):
+              if '.git' in p.parts or 'vendor' in p.parts:
+                  continue
+              json.loads(p.read_text(encoding='utf-8'))
+              print('OK', p)
+          PY
+
+      - name: Build corpus index
+        run: python3 retrieval/build_index.py
+
+      - name: Build source manifest
+        run: python3 scripts/build_source_manifest.py
+
+      - name: Build skill evidence map
+        run: python3 scripts/build_evidence_map.py
+
+      - name: Static checks
+        run: python3 eval/run_static_checks.py
+
+      - name: Smoke-test retrieval
+        run: |
+          python3 retrieval/search.py catalog --volume 第一卷 >/tmp/catalog.json
+          python3 retrieval/search.py search '调查' --limit 3 >/tmp/search.json
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/catalog.json'))
+          assert json.load(open('/tmp/search.json'))
+          print('retrieval smoke tests passed')
+          PY
