@@ -1,0 +1,91 @@
+name: router-heldout-benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: OpenAI-compatible base URL, usually ending in /v1
+        required: true
+        default: https://api.minimaxi.com/v1
+        type: string
+      model:
+        description: Model name
+        required: true
+        default: minimax-m3
+        type: string
+      workers:
+        description: Parallel workers per architecture
+        required: true
+        default: '4'
+        type: string
+      no_response_format:
+        description: Disable response_format=json_object for incompatible APIs
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  heldout:
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [catalog-single, two-stage-v5]
+    runs-on: ubuntu-24.04
+    env:
+      BENCH_BASE_URL: ${{ inputs.base_url }}
+      BENCH_MODEL: ${{ inputs.model }}
+      BENCH_WORKERS: ${{ inputs.workers }}
+      BENCH_API_KEY: ${{ secrets.MAOXUAN_BENCH_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify pinned upstreams
+        run: python3 scripts/sync_upstreams.py
+
+      - name: Verify frozen held-out dataset
+        run: |
+          python3 - <<'PY'
+          import hashlib, pathlib
+          p = pathlib.Path('eval/heldout/router-heldout-v1.jsonl')
+          got = hashlib.sha256(p.read_bytes()).hexdigest()
+          expected = '3ff1154048f2f2c3c218074d66bb8ece3d95257a0557c7c5a5c45f9c9d23cdfb'
+          assert got == expected, (got, expected)
+          print('held-out SHA256 OK', got)
+          PY
+
+      - name: Run held-out benchmark
+        shell: bash
+        run: |
+          mkdir -p eval/results
+          EXTRA=()
+          if [ "${{ inputs.no_response_format }}" = "true" ]; then EXTRA+=(--no-response-format); fi
+          python3 eval/run_heldout_benchmark.py \
+            --architecture "${{ matrix.architecture }}" \
+            --base-url "$BENCH_BASE_URL" \
+            --api-key "$BENCH_API_KEY" \
+            --model "$BENCH_MODEL" \
+            --workers "$BENCH_WORKERS" \
+            --output "eval/results/heldout-${{ matrix.architecture }}.jsonl" \
+            "${EXTRA[@]}"
+
+      - name: Show summary
+        run: cat "eval/results/heldout-${{ matrix.architecture }}.summary.json"
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: router-heldout-${{ matrix.architecture }}-${{ github.run_id }}
+          path: |
+            eval/results/heldout-${{ matrix.architecture }}.jsonl
+            eval/results/heldout-${{ matrix.architecture }}.summary.json
