@@ -48,6 +48,9 @@ jobs:
       - name: Build skill evidence map
         run: python3 scripts/build_evidence_map.py
 
+      - name: Evidence coverage report
+        run: python3 eval/evidence_coverage.py
+
       - name: Static checks
         run: python3 eval/run_static_checks.py
 
@@ -61,3 +64,12 @@ jobs:
           assert json.load(open('/tmp/search.json'))
           print('retrieval smoke tests passed')
           PY
+
+      - name: Upload evidence audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-audit
+          path: |
+            evidence/corpus-manifest.generated.json
+            evidence/skill-source-map.generated.json
+            eval/evidence-coverage.generated.json
