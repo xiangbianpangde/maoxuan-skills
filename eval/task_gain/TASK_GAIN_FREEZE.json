@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "suite": "task-gain-v1",
+  "status": "frozen-before-first-scored-run",
+  "cases_total": 30,
+  "tasks_sha256": "ba0c392f9471714c1092510423c172d8ed58299362d641cc32ea5fb6157fd55a",
+  "rubric_sha256": "2822a281356a11c827de81a0f773b85e1ce82fcf8302f2f45f37fe53c04180b3",
+  "router": {
+    "status": "frozen",
+    "default_router": "catalog-single",
+    "router_freeze_file": "router/ROUTER_FREEZE.json"
+  },
+  "variants": [
+    "vanilla",
+    "retrieval-only",
+    "atomic",
+    "framework-atomic",
+    "full-system"
+  ],
+  "primary_metric": "paired mean normalized weighted score: full-system minus vanilla",
+  "meaningful_gain_threshold_points": 5.0,
+  "evaluation_policy": [
+    "Do not modify tasks, reference requirements, weights, rubric, judge protocol, router prompt, or skill context after inspecting scored results from task-gain-v1.",
+    "All five variants use the same generation model and user prompt; routed variants reuse one frozen catalog-single route per task.",
+    "Judge sees anonymous A-E answers with deterministic per-task shuffling.",
+    "If judge_model equals generation model, record that limitation and optionally replicate with an independent judge later.",
+    "Source-evidence tasks use only local corpus retrieval; modern application tasks do not receive irrelevant source retrieval."
+  ],
+  "created_on": "2026-09-27"
+}
