@@ -22,16 +22,30 @@ def main() -> None:
         chapters = rec.get('source_chapter_matches', [])
         quotes = rec.get('reading_quote_matches', [])
         chapter_hits = sum(bool(x.get('matches')) for x in chapters)
+        chapter_not_found = sum(x.get('local_source_status') == 'not_found' for x in chapters)
         quote_hits = sum(bool(x.get('matches')) for x in quotes)
+        quote_source_not_found = sum(x.get('match_status') == 'source_not_found' for x in quotes)
+        quote_unresolved = sum(x.get('match_status') == 'unresolved' for x in quotes)
+        exact = sum(x.get('match_status') == 'exact' for x in quotes)
+        ellipsis = sum(x.get('match_status') == 'ellipsis' for x in quotes)
+        fuzzy = sum(x.get('match_status') == 'fuzzy' for x in quotes)
+        local_quote_targets = len(quotes) - quote_source_not_found
         rows.append({
             'skill': slug,
             'status': rec.get('status', 'unknown'),
             'declared_chapters': len(chapters),
             'matched_chapters': chapter_hits,
+            'chapters_not_found_locally': chapter_not_found,
             'chapter_match_rate': ratio(chapter_hits, len(chapters)),
             'reading_quotes': len(quotes),
             'matched_quotes': quote_hits,
+            'exact_quotes': exact,
+            'ellipsis_quotes': ellipsis,
+            'fuzzy_quotes': fuzzy,
+            'quote_sources_not_found_locally': quote_source_not_found,
+            'quotes_unresolved_with_local_source': quote_unresolved,
             'quote_match_rate': ratio(quote_hits, len(quotes)),
+            'local_quote_match_rate': ratio(quote_hits, local_quote_targets),
             'has_any_chapter_evidence': chapter_hits > 0,
             'has_any_quote_evidence': quote_hits > 0,
         })
@@ -44,13 +58,21 @@ def main() -> None:
         'skills_with_any_quote_evidence': sum(x['has_any_quote_evidence'] for x in active),
         'declared_chapters': sum(x['declared_chapters'] for x in active),
         'matched_chapters': sum(x['matched_chapters'] for x in active),
+        'chapters_not_found_locally': sum(x['chapters_not_found_locally'] for x in active),
         'reading_quotes': sum(x['reading_quotes'] for x in active),
         'matched_quotes': sum(x['matched_quotes'] for x in active),
+        'exact_quotes': sum(x['exact_quotes'] for x in active),
+        'ellipsis_quotes': sum(x['ellipsis_quotes'] for x in active),
+        'fuzzy_quotes': sum(x['fuzzy_quotes'] for x in active),
+        'quote_sources_not_found_locally': sum(x['quote_sources_not_found_locally'] for x in active),
+        'quotes_unresolved_with_local_source': sum(x['quotes_unresolved_with_local_source'] for x in active),
     }
     summary['chapter_match_rate'] = ratio(summary['matched_chapters'], summary['declared_chapters'])
+    local_quote_targets=summary['reading_quotes']-summary['quote_sources_not_found_locally']
     summary['quote_match_rate'] = ratio(summary['matched_quotes'], summary['reading_quotes'])
+    summary['local_quote_match_rate'] = ratio(summary['matched_quotes'], local_quote_targets)
 
-    result = {'schema_version': '1.0', 'summary': summary, 'skills': rows}
+    result = {'schema_version': '2.0', 'summary': summary, 'skills': rows}
     OUT.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(OUT)

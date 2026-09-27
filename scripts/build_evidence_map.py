@@ -65,8 +65,9 @@ def reading_quotes(text: str):
             if pending: flush(None)
             continue
         z=stripped[1:].strip()
+        # Upstream commonly inserts an empty blockquote line between quote and attribution.
+        # Do not flush here; preserve the quote until the following —《source》 line.
         if not z:
-            if pending: flush(None)
             continue
         am=re.match(r'—\s*《([^》]+)》', z)
         if am:
@@ -107,6 +108,39 @@ def paragraph_windows(a, max_span=3):
             yield i,j,combined
 
 
+def paragraph_for_offset(a, pos: int) -> int:
+    cur=0
+    for i,p in enumerate(a['normpars']):
+        nxt=cur+len(p)
+        if pos < nxt:
+            return i
+        cur=nxt
+    return max(0,len(a['normpars'])-1)
+
+
+def ellipsis_segments(raw: str):
+    parts=re.split(r'(?:…{2,}|\.\.\.+|⋯+)', raw)
+    return [norm(x) for x in parts if len(norm(x))>=8]
+
+
+def ordered_ellipsis_match(raw: str, a):
+    segs=ellipsis_segments(raw)
+    if len(segs)<2:
+        return None
+    full=''.join(a['normpars'])
+    cursor=0; first=None; last=None
+    for seg in segs:
+        idx=full.find(seg,cursor)
+        if idx<0:
+            return None
+        if first is None: first=idx
+        last=idx+len(seg)-1
+        cursor=idx+len(seg)
+    i=paragraph_for_offset(a,first or 0)
+    j=paragraph_for_offset(a,last or 0)
+    return i,j
+
+
 def fuzzy_score(q: str, w: str) -> float:
     if not q or not w: return 0.0
     sm=difflib.SequenceMatcher(None,q,w,autojunk=False)
@@ -123,24 +157,36 @@ def fuzzy_score(q: str, w: str) -> float:
     return max(longest, coverage*0.97, anchor_rate*0.94)
 
 
+def make_match(a,i,j,kind,score,q):
+    ids=[sid(a,k) for k in range(i,j+1)]
+    return {'source_id':ids[0],'source_ids':ids,'path':a['rel'],'match_type':kind,'score':round(score,4),'quote_preview':q[:120]}
+
+
 def find_quote(q: str, pool):
     nq=norm(q)
     if len(nq)<12: return []
     for a in pool:
         for i,j,nw in paragraph_windows(a):
             if nq in nw or (len(nw)>=18 and nw in nq):
-                ids=[sid(a,k) for k in range(i,j+1)]
-                return [{'source_id':ids[0],'source_ids':ids,'path':a['rel'],'match_type':'exact','score':1.0,'quote_preview':q[:120]}]
+                return [make_match(a,i,j,'exact',1.0,q)]
+    # Ellipsized quotations intentionally omit material. Require all substantial
+    # segments to appear in order in the same declared source article.
+    for a in pool:
+        span=ordered_ellipsis_match(q,a)
+        if span:
+            i,j=span
+            return [make_match(a,i,j,'ellipsis',1.0,q)]
     best=None
     for a in pool:
         for i,j,nw in paragraph_windows(a):
             score=fuzzy_score(nq,nw)
             if best is None or score>best[0]:
                 best=(score,a,i,j)
-    if best and best[0]>=0.84:
+    # Keep fuzzy alignment conservative; lower scores are more useful as unresolved
+    # audit cases than as false evidence links.
+    if best and best[0]>=0.90:
         score,a,i,j=best
-        ids=[sid(a,k) for k in range(i,j+1)]
-        return [{'source_id':ids[0],'source_ids':ids,'path':a['rel'],'match_type':'fuzzy','score':round(score,4),'quote_preview':q[:120]}]
+        return [make_match(a,i,j,'fuzzy',score,q)]
     return []
 
 
@@ -155,7 +201,11 @@ for s in CAT['skills']:
         for title in titles:
             matches=title_matches(title,arts)
             title_map[title]=matches
-            rec['source_chapter_matches'].append({'declared':title,'matches':[a['rel'] for a in matches]})
+            rec['source_chapter_matches'].append({
+                'declared':title,
+                'local_source_status':'matched' if matches else 'not_found',
+                'matches':[a['rel'] for a in matches]
+            })
         all_candidates=[]
         for xs in title_map.values():
             for a in xs:
@@ -163,13 +213,23 @@ for s in CAT['skills']:
         for item in reading_quotes(text):
             q=item['quote']; declared=item['declared_source']
             if declared:
-                pool=title_map.get(declared) or title_matches(declared,arts)
+                pool=title_map.get(declared)
+                if pool is None:
+                    pool=title_matches(declared,arts)
+                source_status='matched' if pool else 'not_found'
             else:
                 pool=all_candidates or arts
+                source_status='unspecified'
             found=find_quote(q,pool) if pool else []
-            rec['reading_quote_matches'].append({'declared_source':declared,'quote_preview':q[:160],'matches':found})
+            rec['reading_quote_matches'].append({
+                'declared_source':declared,
+                'local_source_status':source_status,
+                'match_status': found[0]['match_type'] if found else ('source_not_found' if source_status=='not_found' else 'unresolved'),
+                'quote_preview':q[:160],
+                'matches':found
+            })
     result[s['slug']]=rec
 
 out=ROOT/'evidence/skill-source-map.generated.json'
-out.write_text(json.dumps({'schema_version':'2.0','skills':result},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+out.write_text(json.dumps({'schema_version':'2.1','skills':result},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 print(out)
