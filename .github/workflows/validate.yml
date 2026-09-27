@@ -39,6 +39,9 @@ jobs:
               print('OK', p)
           PY
 
+      - name: Build atomic routing benchmark
+        run: python3 eval/build_atomic_benchmark.py
+
       - name: Build corpus index
         run: python3 retrieval/build_index.py
 
@@ -73,3 +76,11 @@ jobs:
             evidence/corpus-manifest.generated.json
             evidence/skill-source-map.generated.json
             eval/evidence-coverage.generated.json
+
+      - name: Upload skill test audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-test-audit
+          path: |
+            eval/atomic-test-inventory.generated.json
+            eval/atomic-routing-benchmark.generated.jsonl
