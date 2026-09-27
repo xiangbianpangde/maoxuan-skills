@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "policy": "Only sources explicitly listed here may be absent from the local 毛选md corpus without failing validation. This file records corpus coverage exceptions; it does not validate the historical accuracy of the upstream citation itself.",
+  "sources": [
+    {
+      "canonical": "毛泽东在莫斯科共产党和工人党代表会议上的发言",
+      "aliases": [
+        "在莫斯科共产党和工人党代表会议上的发言"
+      ],
+      "local_status": "not_present_in_current_corpus",
+      "reason": "Referenced by upstream skills but no matching article title exists in the current 毛选md manifest. Keep as an explicit external-source dependency instead of fuzzy-matching another local article."
+    }
+  ]
+}
