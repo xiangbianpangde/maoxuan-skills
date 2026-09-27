@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -50,23 +52,84 @@ def load_cases() -> list[dict]:
     return cases
 
 
+def _stable_rank(case: dict) -> str:
+    return hashlib.sha256(case['id'].encode('utf-8')).hexdigest()
+
+
+def stratified_sample(cases: list[dict], limit: int | None) -> list[dict]:
+    """Deterministic proportional sample across case types.
+
+    A small smoke run should not be the first N rows of a skill-grouped dataset,
+    otherwise it measures only the first few atomic skills.
+    """
+    if not limit or limit >= len(cases):
+        return cases
+    if limit <= 0:
+        return []
+
+    buckets: dict[str,list[dict]]={}
+    for case in cases:
+        buckets.setdefault(case.get('type') or 'unknown',[]).append(case)
+    nonempty={k:v for k,v in buckets.items() if v}
+    total=sum(len(v) for v in nonempty.values())
+
+    raw={k: limit*len(v)/total for k,v in nonempty.items()}
+    quota={k:min(len(nonempty[k]), math.floor(raw[k])) for k in nonempty}
+    remaining=limit-sum(quota.values())
+    remainder_order=sorted(
+        nonempty,
+        key=lambda k:(raw[k]-math.floor(raw[k]), len(nonempty[k]), k),
+        reverse=True,
+    )
+    while remaining>0:
+        progressed=False
+        for k in remainder_order:
+            if quota[k] < len(nonempty[k]):
+                quota[k]+=1
+                remaining-=1
+                progressed=True
+                if remaining==0:
+                    break
+        if not progressed:
+            break
+
+    selected=[]
+    for k,items in nonempty.items():
+        selected.extend(sorted(items,key=_stable_rank)[:quota[k]])
+    return sorted(selected,key=lambda c:c['id'])
+
+
 def build_system_prompt() -> str:
     catalog=json.loads(CATALOG.read_text(encoding='utf-8'))
     fw=json.loads(FRAMEWORKS.read_text(encoding='utf-8'))
-    slugs=[x['slug'] for x in catalog['skills']]
+    skill_lines=[f"- {x['slug']} ({x['name']}): {x['summary']}" for x in catalog['skills']]
     framework_lines=[f"- {x['id']}: {', '.join(x['atomic_skills'])}" for x in fw['frameworks']]
     composites=[p.parent.name for p in sorted((ROOT/'skills/composite').glob('*/SKILL.md'))]
     return f"""You are the routing evaluator for a layered Selected Works methodology skill system.
 Classify the user's request; do not answer the substantive question.
 
+First apply a skill-necessity gate. The default is direct when this special methodology system does not materially improve the task.
+Do NOT select a methodology skill merely because the user has a problem, decision, disagreement, bug, or learning request.
+
 Routes:
+- direct: no Selected Works retrieval or methodology skill is needed; answer normally outside this skill system.
 - source_lookup: original text, citation, article meaning, textual/historical explanation. Use component retrieval.
-- method_application: a focused non-political problem where one framework and 1-4 atomic skills are enough.
-- composite_task: a multi-stage non-political analysis requiring a composite workflow.
+- method_application: a focused non-political problem where one framework and 1-4 atomic skills materially improve the analysis.
+- composite_task: a genuinely multi-stage non-political analysis requiring a composite workflow.
 - mixed: both original-source evidence and method application are materially required.
 
-Atomic skill slugs (choose only when genuinely applicable):
-{', '.join(slugs)}
+Use direct for ordinary tutorial/resource recommendations, straightforward verification/calculation, a single well-scoped implementation bug, aesthetic/formatting choices, and routine one-off preferences unless the user explicitly asks for deeper methodology analysis.
+Choose the smallest sufficient set of atomic skills. Zero atomic skills is correct for direct and source_lookup. Avoid adding adjacent skills "just in case".
+
+Atomic skills and routing summaries:
+{chr(10).join(skill_lines)}
+
+Important discrimination rules:
+- shijian-renshilun: use when an action -> feedback -> revised-understanding loop is central; not for a generic tutorial/resource request.
+- shishiqiushi-sigao: use when messy/raw evidence must be filtered, verified, connected, or synthesized; not for checking already-computed arithmetic or choosing visual style.
+- maodun-fenxi: use when the task requires prioritizing among multiple competing problems/forces or finding a principal bottleneck; not for a single known bug or a trivial preference dispute.
+- maodun-techuxing: use when a benchmark/template/method is being mechanically copied across different conditions, or when a once-effective method stops working because conditions changed. It is about context-specific method fit, not generic root-cause analysis.
+- diaocha-yanjiu: use when a consequential judgment is blocked by missing first-hand facts or untested assumptions; not for every request that could benefit from more information.
 
 Framework -> atomic map:
 {chr(10).join(framework_lines)}
@@ -77,7 +140,7 @@ Political neutrality boundary: for current politics, elections, parties, officia
 Historical military-origin skills may only be routed for explicitly non-violent domains such as product, engineering, research, project management, organizational learning, or lawful business competition.
 
 Return JSON only with this schema:
-{{"route":"source_lookup|method_application|composite_task|mixed","framework":null,"atomic_skills":[],"composite":null,"components":[]}}
+{{"route":"direct|source_lookup|method_application|composite_task|mixed","framework":null,"atomic_skills":[],"composite":null,"components":[]}}
 Do not include prose outside JSON."""
 
 
@@ -184,7 +247,29 @@ def summarize(results: list[dict]) -> dict:
         xs=[r for r in results if r['benchmark_level']==level and r.get('passed') is not None]
         by_level[level]={'scored':len(xs),'passed':sum(r.get('passed') is True for r in xs)}
         by_level[level]['pass_rate']=round(by_level[level]['passed']/len(xs),4) if xs else None
-    return {'cases_total':len(results),'scored':len(scored),'passed':passed,'pass_rate':round(passed/len(scored),4) if scored else None,'by_level':by_level,'errors':sum(bool(r.get('error')) for r in results)}
+    by_type={}
+    for case_type in sorted({r.get('type') for r in results if r.get('type')}):
+        xs=[r for r in results if r.get('type')==case_type and r.get('passed') is not None]
+        by_type[case_type]={
+            'cases':sum(r.get('type')==case_type for r in results),
+            'scored':len(xs),
+            'passed':sum(r.get('passed') is True for r in xs),
+            'pass_rate':round(sum(r.get('passed') is True for r in xs)/len(xs),4) if xs else None,
+        }
+    latencies=[r['latency_s'] for r in results if isinstance(r.get('latency_s'),(int,float))]
+    token_totals=[(r.get('usage') or {}).get('total_tokens') for r in results]
+    token_totals=[x for x in token_totals if isinstance(x,(int,float))]
+    return {
+        'cases_total':len(results),
+        'scored':len(scored),
+        'passed':passed,
+        'pass_rate':round(passed/len(scored),4) if scored else None,
+        'by_level':by_level,
+        'by_type':by_type,
+        'errors':sum(bool(r.get('error')) for r in results),
+        'avg_latency_s':round(sum(latencies)/len(latencies),3) if latencies else None,
+        'total_tokens':int(sum(token_totals)) if token_totals else None,
+    }
 
 
 def main() -> None:
@@ -199,11 +284,13 @@ def main() -> None:
     ap.add_argument('--no-response-format',action='store_true')
     ap.add_argument('--dry-run',action='store_true',help='Validate and count the benchmark without making network calls.')
     args=ap.parse_args()
-    cases=load_cases()
-    if args.limit: cases=cases[:args.limit]
+    cases=stratified_sample(load_cases(),args.limit)
     system=build_system_prompt()
     if args.dry_run:
-        print(json.dumps({'ok':True,'cases':len(cases),'system_prompt_chars':len(system),'atomic_cases':sum(c['benchmark_level']=='atomic' for c in cases),'system_router_cases':sum(c['benchmark_level']=='system_router' for c in cases)},ensure_ascii=False,indent=2))
+        type_counts={}
+        for c in cases:
+            type_counts[c['type']]=type_counts.get(c['type'],0)+1
+        print(json.dumps({'ok':True,'cases':len(cases),'system_prompt_chars':len(system),'atomic_cases':sum(c['benchmark_level']=='atomic' for c in cases),'system_router_cases':sum(c['benchmark_level']=='system_router' for c in cases),'by_type':type_counts},ensure_ascii=False,indent=2))
         return
     if not args.base_url or not args.model:
         ap.error('set --base-url/MAOXUAN_BENCH_BASE_URL and --model/MAOXUAN_BENCH_MODEL')
