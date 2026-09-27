@@ -1,0 +1,8 @@
+[submodule "vendor/kangarooking"]
+	path = vendor/kangarooking
+	url = https://github.com/kangarooking/mao-selected-works-skill.git
+	branch = main
+[submodule "vendor/leezythu"]
+	path = vendor/leezythu
+	url = https://github.com/leezythu/maoxuan-skill.git
+	branch = main
