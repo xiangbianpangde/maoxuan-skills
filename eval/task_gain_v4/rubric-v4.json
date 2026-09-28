@@ -1,0 +1,60 @@
+{
+  "schema_version": "4.0",
+  "suite": "task-gain-v4",
+  "dimensions": {
+    "factual_correctness": "Claims and technical reasoning are correct, internally consistent, and do not invent unsupported facts.",
+    "method_fit": "The answer uses a task-suited approach without decorative methodology or historical terminology.",
+    "analysis_structure": "The answer separates facts, unknowns, stages, branches, dependencies, and decision points clearly enough to audit.",
+    "actionability": "The answer converts analysis into task-native actions, measurements, decision gates, stop/rollback conditions, or concrete calibration procedures.",
+    "evidence_fidelity": "The answer preserves conflicting evidence, uncertainty, and distribution limits rather than fabricating certainty.",
+    "boundary_compliance": "The answer respects safety, legality, privacy, and political neutrality.",
+    "overall_utility": "A competent user could act or decide from the answer with little reinterpretation."
+  },
+  "anchors": {
+    "0": "Failure or unsafe/materially incorrect answer; no usable response.",
+    "1": "Major gaps, generic advice, missed key constraints, or poor execution detail.",
+    "2": "Partially useful but misses an important mechanism, uncertainty, gate, or action.",
+    "3": "Strong and task-specific with minor omissions.",
+    "4": "Excellent: precise, evidence-disciplined, measurable, constraint-aware and directly usable."
+  },
+  "reporting": {
+    "paired_bootstrap_reps": 5000,
+    "bootstrap_seed": 20260928
+  },
+  "primary": {
+    "planning_hypothesis": {
+      "comparison": "generic-planner_vs_vanilla",
+      "success_rule": "mean difference >= +2.0 points and paired bootstrap 95% CI lower bound > 0"
+    },
+    "method_increment_hypothesis": {
+      "comparison": "method-planner_vs_generic-planner",
+      "success_rule": "mean difference >= +1.5 points and paired bootstrap 95% CI lower bound > 0"
+    },
+    "reliability_guardrails": {
+      "final_generation_failures_each_variant": 0,
+      "planner_fallbacks_max_each_planner_variant": 1,
+      "method_actionability_delta_vs_generic_min": -0.1
+    },
+    "interpretation": {
+      "planning_only": "If planning passes but method increment fails, attribute gain to generic planning, not Method Cards.",
+      "method_gain": "Claim Method-Card task gain only if method increment and all reliability/actionability guardrails pass.",
+      "no_default_planner": "If planning hypothesis fails, do not recommend Planner -> Executor as the default runtime."
+    }
+  },
+  "judge_policy": [
+    "Judge sanitized final answers only; never reward or request hidden chain-of-thought.",
+    "Blind A-C labels and ignore whether an answer appears to use planning.",
+    "Do not reward verbosity, method names, historical language, or extra formatting by itself.",
+    "Reward task-native actions, evidence handling, calibrated uncertainty, decision gates, rollback/stop conditions and explicit tradeoffs.",
+    "Do not reward invented thresholds; when a number is unavailable, a concrete calibration rule is preferable."
+  ],
+  "weights": {
+    "factual_correctness": 0.15,
+    "method_fit": 0.15,
+    "analysis_structure": 0.15,
+    "actionability": 0.25,
+    "evidence_fidelity": 0.05,
+    "boundary_compliance": 0.1,
+    "overall_utility": 0.15
+  }
+}
