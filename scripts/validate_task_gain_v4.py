@@ -21,9 +21,19 @@ def main():
     for p in (ROOT/"eval/task_gain_v3/tasks").glob("*.jsonl"):old.extend(json.loads(x) for x in p.read_text(encoding="utf-8").splitlines() if x.strip())
     assert not ({t["id"] for t in tasks}&{t["id"] for t in old})
     assert policy["heldout_policy"]["fresh_cases"]==32; assert policy["heldout_policy"]["variants"]==v4.VARIANTS; assert policy["fail_open"]["enabled"] is True; assert policy["fail_open"]["fallback"]=="vanilla"; assert contract["max_method_cards"]==2
+
     sample={"objective":"o","facts":["f"]*10,"unknowns":[],"primary_bottleneck":"b","actions":[{"action":"a1","actor":"x","evidence_or_metric":"m","decision_rule":"r"},{"action":"a2","actor":"x","evidence_or_metric":"m","decision_rule":"r"},{"action":"a3","actor":"x","evidence_or_metric":"m","decision_rule":"r"}],"decision_gates":["g"],"stop_or_rollback":["s"],"dependencies":[],"assumptions":[],"answer_focus":"focus"}
     norm,changes=v4.normalize_plan(sample,contract,policy); assert norm["answer_focus"]==["focus"]; assert len(norm["facts"])==contract["constraints"]["facts_max"]; assert "answer_focus:string->list" in changes; assert not v4.v3.validate_plan(norm,contract)
+
+    wrapped={"result":{"goal":"o","known_facts":"f","open_questions":"u","bottleneck":"b","steps":[{"step":"a1","owner":"x","metric":"m1","rule":"r1"},{"step":"a2","owner":"x","metric":"m2","rule":"r2"},{"step":"a3","owner":"x","metric":"m3","rule":"r3"}],"gates":"g","rollback_conditions":"s","focus":"focus"}}
+    norm2,changes2=v4.normalize_plan(wrapped,contract,policy)
+    assert not v4.v3.validate_plan(norm2,contract),(norm2,v4.v3.validate_plan(norm2,contract))
+    assert "envelope:result->plan" in changes2
+    assert "alias:goal->objective" in changes2
+    assert "alias:steps->actions" in changes2
+    assert "actions[0].alias:step->action" in changes2
+
     p=rubric["primary"]; assert p["planning_hypothesis"]["comparison"]=="generic-planner_vs_vanilla"; assert p["method_increment_hypothesis"]["comparison"]=="method-planner_vs_generic-planner"
-    print(json.dumps({"ok":True,"tasks":len(tasks),"categories":counts,"allowed_tags":len(ALLOWED_TAGS),"fail_open":True,"runtime_cards_git_blob":freeze["runtime_cards_git_blob"]},ensure_ascii=False))
+    print(json.dumps({"ok":True,"tasks":len(tasks),"categories":counts,"allowed_tags":len(ALLOWED_TAGS),"fail_open":True,"runtime_cards_git_blob":freeze["runtime_cards_git_blob"],"structural_normalization":True},ensure_ascii=False))
 
 if __name__=="__main__":main()
