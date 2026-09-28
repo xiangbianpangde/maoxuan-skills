@@ -1,0 +1,45 @@
+{
+  "schema_version": "3.0",
+  "status": "planner-executor-v3",
+  "max_method_cards": 2,
+  "policy": {
+    "purpose": "Use compact method cards only in a hidden planning compiler; the final executor never receives card definitions, card names, historical terminology, framework names, or routing metadata.",
+    "primary_card": "Use the first selected atomic skill as the primary method card when available.",
+    "secondary_card": "A second selected card may be supplied only as optional support; the planner must ignore it if it does not add a distinct function.",
+    "materialization": "Translate abstract method guidance into task-native facts, unknowns, actions, measurements, decision gates, owners/actors, dependencies, and stop/rollback conditions.",
+    "thresholds": "Do not invent numeric thresholds. Use task-provided values when available; otherwise specify a concrete calibration procedure or comparative rule.",
+    "political_boundary": "Do not use this runtime for current political persuasion, elections, voter mobilization, coercion, violence, or evasion. Historical origins are not exposed in the task-native plan."
+  },
+  "planner_output_schema": {
+    "objective": "string",
+    "facts": ["string"],
+    "unknowns": ["string"],
+    "primary_bottleneck": "string",
+    "actions": [
+      {"action": "string", "actor": "string", "evidence_or_metric": "string", "decision_rule": "string"}
+    ],
+    "decision_gates": ["string"],
+    "stop_or_rollback": ["string"],
+    "dependencies": ["string"],
+    "assumptions": ["string"],
+    "answer_focus": ["string"]
+  },
+  "constraints": {
+    "facts_max": 8,
+    "unknowns_max": 6,
+    "actions_min": 3,
+    "actions_max": 7,
+    "decision_gates_min": 1,
+    "decision_gates_max": 5,
+    "stop_or_rollback_min": 1,
+    "stop_or_rollback_max": 4,
+    "answer_focus_max": 5
+  },
+  "executor_rules": [
+    "Answer the original task directly; never mention the planner, method cards, routing, or methodology provenance.",
+    "Use the plan as a scaffold, not as authority; correct any plan detail that conflicts with the user task.",
+    "Preserve domain-specific variables, constraints, evidence gaps, measurements, decision gates, and rollback/stop criteria.",
+    "Prefer concrete calibration procedures over placeholder X/Y thresholds.",
+    "Do not expose hidden chain-of-thought."
+  ]
+}

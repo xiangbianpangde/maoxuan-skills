@@ -1,0 +1,45 @@
+{
+  "schema_version": "3.0",
+  "suite": "task-gain-v3",
+  "status": "frozen-before-first-scored-run",
+  "cases_total": 36,
+  "task_files": {
+    "eval/task_gain_v3/tasks/engineering-project.jsonl": "69f5379b2fcddf9ae0348252fa51d65f0f2ea519",
+    "eval/task_gain_v3/tasks/learning-strategy.jsonl": "d96257d17cebfdbac17d93f58a59dfb8306deb6b",
+    "eval/task_gain_v3/tasks/organization.jsonl": "d4231238ebdc723a6180ba25fbf8258fa3e4e797",
+    "eval/task_gain_v3/tasks/research-decision.jsonl": "db53c659adeb5678149d85152dd7342b46d84a78"
+  },
+  "rubric_git_blob": "2db0f8b72051dc78794f586d488f598667b645c1",
+  "planner_contract_git_blob": "ebcb3f3abbeb4e7658697c07277afe2ad7b7dff3",
+  "runtime_cards_git_blob": "bbaf1a971280b90ce39d5569beccf2f943cf84c3",
+  "router": {
+    "status": "frozen",
+    "default_router": "catalog-single",
+    "router_freeze_file": "router/ROUTER_FREEZE.json"
+  },
+  "variants": [
+    "vanilla",
+    "compact-direct",
+    "generic-planner",
+    "method-planner"
+  ],
+  "primary": {
+    "method_planner_vs_vanilla": {
+      "min_gain_points": 3.0,
+      "ci_lower_gt": 0.0
+    },
+    "method_planner_vs_generic_planner": {
+      "min_gain_points": 1.5,
+      "ci_lower_gt": 0.0
+    },
+    "actionability_guardrail_delta_min": -0.1
+  },
+  "evaluation_policy": [
+    "Do not modify frozen tasks, rubric, Planner Contract, Runtime Cards, router prompt, or success criteria after inspecting scored v3 results.",
+    "The Generic Planner controls for extra planning compute; method-specific credit requires Method Planner to beat Generic Planner.",
+    "Judges receive only reasoning-sanitized final answers.",
+    "Difficulty is defined structurally by hardness_features before any scored Vanilla comparison; do not post-hoc select tasks by observed Vanilla failures.",
+    "Task Gain v1/v2 remain development evidence and are not reused as clean v3 tasks."
+  ],
+  "created_on": "2026-09-28"
+}

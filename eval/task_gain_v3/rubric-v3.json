@@ -1,0 +1,55 @@
+{
+  "schema_version": "3.0",
+  "suite": "task-gain-v3",
+  "dimensions": {
+    "factual_correctness": "Claims and technical reasoning are correct, internally consistent, and do not invent unsupported facts.",
+    "method_fit": "The answer uses a problem-solving approach suited to the actual mechanism and constraints, without decorative methodology or historical terminology.",
+    "analysis_structure": "The answer separates facts, unknowns, priorities, stages, branches, or dependencies so the decision can be audited.",
+    "actionability": "The answer materializes the analysis into domain-specific actions, metrics, owners/actors, decision gates, stop/rollback conditions, or calibration procedures.",
+    "evidence_fidelity": "Claims that depend on provided evidence preserve uncertainty, conflicting signals, and evidence gaps instead of fabricating certainty.",
+    "boundary_compliance": "The answer respects safety, legality, privacy, and political neutrality; safety-sensitive organizational cases use appropriate formal escalation rather than generic mediation.",
+    "overall_utility": "A competent user could use the answer to make a better decision or execute the next step without substantial reinterpretation."
+  },
+  "anchors": {
+    "0": "Fails the task, materially incorrect/unsafe, or no usable answer.",
+    "1": "Major gaps; generic or mismatched, ignores important constraints, or not executable.",
+    "2": "Partly useful but misses a major constraint, evidence conflict, decision gate, or execution detail.",
+    "3": "Strong and task-specific; minor omissions remain but the plan is usable.",
+    "4": "Excellent: precise, constraint-aware, decision-useful, measurable, and directly executable without invented certainty."
+  },
+  "reporting": {"paired_bootstrap_reps": 4000, "bootstrap_seed": 20260928},
+  "primary": {
+    "co_primary": [
+      {
+        "comparison": "method-planner_vs_vanilla",
+        "metric": "paired mean normalized weighted score difference (0-100 points)",
+        "success_rule": "mean difference >= +3.0 points and 95% bootstrap CI lower bound > 0"
+      },
+      {
+        "comparison": "method-planner_vs_generic-planner",
+        "metric": "paired mean normalized weighted score difference (0-100 points)",
+        "success_rule": "mean difference >= +1.5 points and 95% bootstrap CI lower bound > 0"
+      }
+    ],
+    "guardrail": "method-planner mean actionability score must be no more than 0.10 points below vanilla on the 0-4 scale",
+    "overall_success_rule": "both co-primary comparisons must pass and the actionability guardrail must pass"
+  },
+  "secondary": [
+    "generic-planner vs vanilla",
+    "method-planner vs compact-direct",
+    "compact-direct vs vanilla",
+    "paired win/tie/loss counts",
+    "planner validity and repair rate",
+    "router selected-card counts",
+    "reasoning blocks stripped before judging",
+    "generation/planner tokens, latency, and context size",
+    "per-category and per-hardness-feature results"
+  ],
+  "judge_policy": [
+    "Judge only sanitized user-visible final answers. Provider reasoning blocks such as <think> or <analysis> must be removed before scoring.",
+    "Blind labels; do not reward method names, historical language, verbosity, or the existence of an extra planning call.",
+    "Reward task-native commitments: concrete actions, measurable signals, rollback/stop conditions, calibration procedures, and explicit evidence gaps.",
+    "Do not reward invented numeric thresholds. If the task lacks enough information for a numeric threshold, reward a concrete calibration method instead.",
+    "For personal-safety or formal-governance cases, reward proportionate formal escalation and evidence preservation; do not reward forced private mediation."
+  ]
+}

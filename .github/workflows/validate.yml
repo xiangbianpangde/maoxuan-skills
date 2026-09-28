@@ -23,7 +23,7 @@ jobs:
       - name: Verify pinned upstreams
         run: python3 scripts/sync_upstreams.py
       - name: Compile Python
-        run: python3 -m py_compile retrieval/*.py scripts/*.py eval/*.py eval/task_gain/*.py eval/task_gain_v2/*.py
+        run: python3 -m py_compile retrieval/*.py scripts/*.py eval/*.py eval/task_gain/*.py eval/task_gain_v2/*.py eval/task_gain_v3/*.py
       - name: Validate JSON
         run: |
           python3 - <<'PY'
@@ -70,6 +70,24 @@ jobs:
               ('skills/runtime/RUNTIME_CARDS.json','runtime_cards_git_blob'),
               ('skills/runtime/COMPOSITE_CARDS.json','composite_cards_git_blob')]:
               got=blob(path); assert got==freeze[key],(path,got,freeze[key]); print('task-gain v2 frozen input OK',path,got)
+          PY
+      - name: Task Gain v3 validation
+        run: python3 scripts/validate_task_gain_v3.py
+      - name: Task Gain v3 harness dry run
+        run: |
+          python3 eval/run_task_gain_v3.py --dry-run
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          freeze=json.loads(pathlib.Path('eval/task_gain_v3/TASK_GAIN_V3_FREEZE.json').read_text())
+          def blob(path):
+              data=pathlib.Path(path).read_bytes(); return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+          for path,expected in freeze['task_files'].items():
+              got=blob(path); assert got==expected,(path,got,expected); print('task-gain v3 frozen task OK',path,got)
+          for path,key in [
+              ('eval/task_gain_v3/rubric-v3.json','rubric_git_blob'),
+              ('skills/runtime/PLANNER_CONTRACT.json','planner_contract_git_blob'),
+              ('skills/runtime/RUNTIME_CARDS.json','runtime_cards_git_blob')]:
+              got=blob(path); assert got==freeze[key],(path,got,freeze[key]); print('task-gain v3 frozen input OK',path,got)
           PY
       - name: Build corpus index
         run: python3 retrieval/build_index.py
