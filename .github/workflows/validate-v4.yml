@@ -1,0 +1,28 @@
+name: validate-v4
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-v4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned upstreams
+        run: python3 scripts/sync_upstreams.py
+      - name: Compile v4 Python
+        run: python3 -m py_compile eval/task_gain_v4/*.py eval/run_task_gain_v4.py eval/run_planner_reliability_regression.py scripts/validate_task_gain_v4.py
+      - name: Validate frozen v4 design
+        run: python3 scripts/validate_task_gain_v4.py
+      - name: V4 harness dry run
+        run: python3 eval/run_task_gain_v4.py --dry-run
