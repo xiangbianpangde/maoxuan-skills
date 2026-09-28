@@ -1,0 +1,30 @@
+{
+  "schema_version": "2.0",
+  "suite": "task-gain-v2",
+  "status": "frozen-before-first-scored-run",
+  "cases_total": 40,
+  "method_cases_total": 32,
+  "source_cases_total": 8,
+  "tasks_git_blob": "8cdf445e7fa1731e821467394abbd7cd6ed1c5f0",
+  "rubric_git_blob": "74e9aed964afb98d893078ac81b67788ff96c43f",
+  "runtime_cards_git_blob": "bbaf1a971280b90ce39d5569beccf2f943cf84c3",
+  "composite_cards_git_blob": "fee8c507153e9dd30b8346edbc85f383dfe75f88",
+  "router": {
+    "status": "frozen",
+    "default_router": "catalog-single",
+    "router_freeze_file": "router/ROUTER_FREEZE.json"
+  },
+  "variants": ["vanilla", "retrieval-only", "legacy-raw", "compact-atomic", "full-v2"],
+  "primary_metric": "paired mean normalized weighted score: compact-atomic minus vanilla on the 32 non-source method tasks",
+  "meaningful_gain_threshold_points": 5.0,
+  "success_rule": "primary mean difference >= +5.0 and paired bootstrap 95% CI lower bound > 0",
+  "evaluation_policy": [
+    "Do not modify tasks, reference requirements, weights, rubric, runtime cards, judge protocol, router prompt or Skill definitions after inspecting scored task-gain-v2 results.",
+    "All variants use the same generation model and user prompt; routed variants reuse one frozen catalog-single route per task.",
+    "legacy-raw reproduces the v1 raw upstream SKILL.md delivery as a control; compact-atomic uses only selected Runtime Cards.",
+    "full-v2 uses retrieval only for source_lookup, compact cards for method_application, compact cards plus compact composite for composite_task, and both evidence plus compact method context for mixed.",
+    "Judge sees anonymous A-E answers with deterministic per-task shuffling.",
+    "If judge_model equals generation model, record the limitation and replicate with an independent judge if results are close to decision thresholds."
+  ],
+  "created_on": "2026-09-28"
+}
