@@ -37,10 +37,43 @@ SKILL.md / Router
 - `skills/atomic/CATALOG.json`：25 个原子 Skill 的规范化目录。
 - `skills/frameworks/FRAMEWORKS.json`：7 个高层框架与 Atomic Skill 映射。
 - `skills/composite/`：研究决策、复杂问题分析、非暴力战略分析、组织改进四个组合 Skill。
+- `skills/runtime/`：紧凑 Runtime Cards、Planner Contract 与可靠性策略。
 - `retrieval/`：对 `毛选md/` 建立稳定 Source ID、SQLite 索引、关键词/可选向量/可选重排检索。
 - `evidence/`：把 Skill 中的来源与引用绑定回本地 corpus。
-- `eval/`：Routing / Fidelity / Citation / Composition / Task Gain 的评测骨架。
+- `eval/`：Routing / Fidelity / Citation / Composition / Task Gain 的评测与冻结实验。
 - `.gitmodules` + `vendor/`：以 Git submodule 固定两个 MIT 上游 commit，避免复制漂移；`scripts/sync_upstreams.py` 负责初始化并校验版本。
+
+## 运行时实证状态
+
+截至 Task Gain v4，项目已经用冻结 held-out 对自动 Runtime 注入做了完整归因实验。最终证据不支持把毛选 Method Cards 作为现代任务的默认自动注入层，但支持通用的 Planner → Executor 作为复杂任务候选路径。
+
+MiniMax M3 的 v4 结果：
+
+- Vanilla：`87.969`
+- Generic Planner：`97.383`
+- Method Planner：`94.922`
+- Generic Planner − Vanilla：`+9.414`，95% CI `[+5.469, +13.320]`
+- Method Planner − Generic Planner：`-2.461`，95% CI `[-5.586, +0.586]`
+
+因此当前推荐运行策略是：
+
+```text
+原文 / 出处 / 历史解释
+    -> Retrieval + Evidence
+
+简单或对延迟/成本敏感的现代任务
+    -> Vanilla direct
+
+复杂、多约束、需要阶段决策与回滚的现代任务
+    -> Generic Planner -> Executor
+
+用户显式要求使用、比较或研究某个毛选方法
+    -> Router -> 可选 Runtime Card(s)
+```
+
+`Method Cards` 继续作为可解释的方法库、显式调用能力和研究对象保留，但项目**不宣称自动 Method-Card 注入普遍优于强模型的通用规划**。
+
+最终实验报告见 `eval/reports/minimax-m3-task-gain-v4-final.md`。Raw `SKILL.md` 自动注入路线已废弃；Task Gain 自动注入调参线在 v4 后结项，不继续用 v5/v6 针对同一结果反复调提示词。
 
 ## 快速开始
 
@@ -93,13 +126,13 @@ Agent 必须区分：
 
 “这句话出自哪里”“这篇文章讲什么”“原文如何表述”等问题，不应先调用方法论 Skill，而应检索 `毛选md/`。
 
-### 3. 方法问题优先 Framework -> Atomic
+### 3. 现代复杂任务默认使用通用规划，方法库按需调用
 
-复杂问题先选高层框架，再选择 1–4 个原子 Skill 执行。不要因为关键词命中就同时调用大量 Skill。
+Task Gain v4 已证明 Generic Planner 相比 Vanilla 有明显增益，但没有证明自动 Method-Card 注入在 Generic Planner 之上还有额外增益。因此现代复杂任务默认走通用 Planner → Executor；Framework / Atomic / Composite 层用于显式方法应用、研究、解释和可控实验，不因关键词命中而自动堆叠大量 Skill。
 
 ### 4. 组合 Skill 只负责顺序与判停
 
-Composite Skill 不重新发明方法，而是明确：什么时候调用哪个 Atomic Skill、何时停止、何时回退到调查和原文核验。
+Composite Skill 不重新发明方法，而是明确：什么时候调用哪个 Atomic Skill、何时停止、何时回退到调查和原文核验。它属于可选方法库，不是所有复杂任务的默认前置层。
 
 ### 5. 边界
 
