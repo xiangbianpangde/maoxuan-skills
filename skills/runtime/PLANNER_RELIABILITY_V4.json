@@ -1,0 +1,61 @@
+{
+  "schema_version": "4.0",
+  "status": "reliability-attribution-v4",
+  "base_planner_contract": "skills/runtime/PLANNER_CONTRACT.json",
+  "runtime_cards_policy": "Use the frozen v2 Runtime Cards unchanged; v4 does not rewrite, expand, or tune cards against v3 results.",
+  "normalization": {
+    "principle": "Repair harmless JSON shape/bound deviations deterministically before asking the model to repair; never invent task semantics.",
+    "list_fields": [
+      "facts",
+      "unknowns",
+      "decision_gates",
+      "stop_or_rollback",
+      "dependencies",
+      "assumptions",
+      "answer_focus"
+    ],
+    "string_to_singleton_list": true,
+    "trim_string_items": true,
+    "drop_empty_string_items": true,
+    "bounded_truncation": {
+      "facts": "facts_max",
+      "unknowns": "unknowns_max",
+      "actions": "actions_max",
+      "decision_gates": "decision_gates_max",
+      "stop_or_rollback": "stop_or_rollback_max",
+      "answer_focus": "answer_focus_max"
+    },
+    "actions_dict_to_singleton_list": true,
+    "prohibited_repairs": [
+      "Do not synthesize missing objective or primary_bottleneck.",
+      "Do not invent missing action content, actors, evidence, decision rules, gates, or rollback conditions.",
+      "Do not fabricate numeric thresholds."
+    ]
+  },
+  "repair": {
+    "max_model_repair_attempts": 1
+  },
+  "fail_open": {
+    "enabled": true,
+    "fallback": "vanilla",
+    "rule": "If the planner is still invalid after deterministic normalization and one model repair, answer the original task through the Vanilla path instead of returning an empty answer.",
+    "audit": "Record planner error, normalizations, repair attempt, and fallback_used."
+  },
+  "development_regression": {
+    "suite": "task-gain-v3 frozen 36 tasks",
+    "purpose": "Reliability regression only; v3 tasks are development data and cannot support new task-gain claims.",
+    "required_before_v4_scoring": "Both Generic Planner and Method Planner must produce valid plans on all 36 v3 tasks after normalization/at most one repair. Any planner error aborts the combined v4 workflow before held-out scoring."
+  },
+  "heldout_policy": {
+    "suite": "task-gain-v4",
+    "fresh_cases": 32,
+    "variants": [
+      "vanilla",
+      "generic-planner",
+      "method-planner"
+    ],
+    "generic_planner_role": "Compute-matched control that receives the same planner contract but no Method Cards.",
+    "method_planner_role": "Receives at most two frozen Runtime Cards selected by the frozen catalog-single Router.",
+    "reasoning_policy": "Strip provider reasoning blocks before judge scoring."
+  }
+}
