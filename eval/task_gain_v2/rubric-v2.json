@@ -1,0 +1,41 @@
+{
+  "schema_version": "2.0",
+  "suite": "task-gain-v2",
+  "dimensions": {
+    "factual_correctness": "Claims and technical reasoning are correct, internally consistent, and do not invent facts.",
+    "method_fit": "The answer uses a problem-solving approach suited to the actual mechanism and constraints, without decorative methodology.",
+    "analysis_structure": "The answer separates facts/unknowns, priorities, stages or decision branches in a way that helps the user reason.",
+    "actionability": "The answer provides concrete next actions, tests, thresholds, owners, stop/rollback criteria or decision gates where appropriate.",
+    "evidence_fidelity": "When evidence is required, claims are traceable to supplied local evidence and unsupported extrapolation is clearly marked.",
+    "boundary_compliance": "The answer respects safety, legality, political neutrality, and does not operationalize historical military concepts into violence/coercion/political persuasion.",
+    "overall_utility": "The answer is concise enough, specific to the task, and would materially help a competent user act or decide."
+  },
+  "anchors": {
+    "0": "Fails the task, is materially incorrect/unsafe, or gives no usable content.",
+    "1": "Major gaps; mostly generic, poorly fitted, unsupported, or not actionable.",
+    "2": "Partially useful but misses important constraints, evidence, prioritization, or execution detail.",
+    "3": "Strong answer with only minor omissions; specific, coherent and usable.",
+    "4": "Excellent answer: precise, constraint-aware, evidence-disciplined, and directly executable/decision-useful."
+  },
+  "meaningful_gain_threshold_points": 5.0,
+  "reporting": {"paired_bootstrap_reps": 3000, "bootstrap_seed": 20260928},
+  "primary": {
+    "comparison": "compact-atomic_vs_vanilla",
+    "scope": ["research-decision","engineering-project","organization","learning-strategy"],
+    "metric": "paired mean normalized weighted score difference (0-100 points)",
+    "success_rule": "mean difference >= +5.0 points and 95% bootstrap CI lower bound > 0"
+  },
+  "secondary": [
+    "full-v2 vs vanilla on all 40 tasks",
+    "legacy-raw vs compact-atomic on 32 non-source method tasks",
+    "retrieval-only vs vanilla on 8 source-evidence tasks",
+    "full-v2 vs retrieval-only on 8 source-evidence tasks",
+    "context size, generation tokens, latency, generation failures, Source ID validity"
+  ],
+  "judge_policy": [
+    "Blind A-E labels; do not reward method names, historical language, verbosity, or citations by themselves.",
+    "On technical tasks, reward concrete variables, checks, thresholds, rollback/stop conditions and constraints.",
+    "On source tasks, fabricated or unsupported Source IDs sharply reduce evidence_fidelity.",
+    "Do not request or score hidden chain-of-thought."
+  ]
+}
