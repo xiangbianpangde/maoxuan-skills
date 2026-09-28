@@ -1,0 +1,37 @@
+{
+  "schema_version": "4.0",
+  "suite": "task-gain-v4",
+  "status": "frozen-before-first-scored-run",
+  "cases_total": 32,
+  "tasks_git_blob": "a734e98b4aabd0629979f324fd8c7ad97a738cd7",
+  "rubric_git_blob": "c103607d1d5970d1f40a5b9c2d5b9e008a6fc4ca",
+  "planner_reliability_policy_git_blob": "815febc66625a4ce0a8b3cfba0cebf5ddea0c4d3",
+  "planner_contract_git_blob": "ebcb3f3abbeb4e7658697c07277afe2ad7b7dff3",
+  "runtime_cards_git_blob": "bbaf1a971280b90ce39d5569beccf2f943cf84c3",
+  "router": {
+    "status": "frozen",
+    "default_router": "catalog-single",
+    "router_freeze_file": "router/ROUTER_FREEZE.json"
+  },
+  "variants": [
+    "vanilla",
+    "generic-planner",
+    "method-planner"
+  ],
+  "pre_scoring_gate": "Run the frozen v3 36-task planner reliability regression first. Both Generic Planner and Method Planner must have zero planner errors after deterministic normalization and at most one repair; otherwise v4 scoring must not start.",
+  "planning_hypothesis": "Generic Planner minus Vanilla mean score >= +2.0 and paired bootstrap 95% CI lower bound > 0.",
+  "method_increment_hypothesis": "Method Planner minus Generic Planner mean score >= +1.5 and paired bootstrap 95% CI lower bound > 0.",
+  "reliability_guardrails": {
+    "final_generation_failures_each_variant": 0,
+    "planner_fallbacks_max_each_planner_variant": 1,
+    "method_actionability_delta_vs_generic_min": -0.1
+  },
+  "interpretation_policy": [
+    "If Generic Planner beats Vanilla but Method Planner does not beat Generic Planner, attribute the gain to planning rather than Method Cards.",
+    "Do not claim Method-Card task gain unless the method-increment comparison and all reliability/actionability guardrails pass.",
+    "If Generic Planner does not beat Vanilla, keep Vanilla as the default runtime.",
+    "The 36 v3 tasks are development/regression data only and cannot support new v4 task-gain claims.",
+    "Do not modify v4 tasks, rubric, success rules, Runtime Cards, Planner Contract, reliability policy, Router prompt, or Skill definitions after inspecting scored v4 results."
+  ],
+  "created_on": "2026-09-28"
+}
