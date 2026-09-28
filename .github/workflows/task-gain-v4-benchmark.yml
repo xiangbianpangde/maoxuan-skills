@@ -1,0 +1,93 @@
+name: task-gain-v4-benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: OpenAI-compatible base URL
+        required: true
+        default: https://api.minimaxi.com/v1
+      model:
+        description: Generation model
+        required: true
+        default: minimax-m3
+      judge_model:
+        description: Optional independent judge model; leave blank to reuse generation model
+        required: false
+        default: ''
+      workers:
+        required: true
+        default: '4'
+      judge_workers:
+        required: true
+        default: '2'
+      no_response_format:
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  task-gain-v4:
+    runs-on: ubuntu-latest
+    env:
+      BENCH_BASE_URL: ${{ inputs.base_url }}
+      BENCH_MODEL: ${{ inputs.model }}
+      JUDGE_MODEL: ${{ inputs.judge_model }}
+      BENCH_WORKERS: ${{ inputs.workers }}
+      JUDGE_WORKERS: ${{ inputs.judge_workers }}
+      BENCH_API_KEY: ${{ secrets.MAOXUAN_BENCH_API_KEY }}
+      NO_RESPONSE_FORMAT: ${{ inputs.no_response_format }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned upstreams
+        run: python3 scripts/sync_upstreams.py
+      - name: Validate frozen v4 design
+        run: python3 scripts/validate_task_gain_v4.py
+      - name: Build local corpus index
+        run: python3 retrieval/build_index.py
+      - name: V3 planner reliability gate
+        run: |
+          set -o pipefail
+          mkdir -p eval/results
+          EXTRA=()
+          if [ "$NO_RESPONSE_FORMAT" = "true" ]; then EXTRA+=(--no-response-format); fi
+          python3 eval/run_planner_reliability_regression.py \
+            --base-url "$BENCH_BASE_URL" \
+            --api-key "$BENCH_API_KEY" \
+            --model "$BENCH_MODEL" \
+            --workers "$BENCH_WORKERS" \
+            --require-zero \
+            "${EXTRA[@]}" | tee eval/results/planner-reliability-v3-v4.json
+      - name: Run frozen Task Gain v4
+        run: |
+          EXTRA=()
+          if [ "$NO_RESPONSE_FORMAT" = "true" ]; then EXTRA+=(--no-response-format); fi
+          JUDGE=()
+          if [ -n "$JUDGE_MODEL" ]; then JUDGE+=(--judge-model "$JUDGE_MODEL"); fi
+          python3 eval/run_task_gain_v4.py \
+            --base-url "$BENCH_BASE_URL" \
+            --api-key "$BENCH_API_KEY" \
+            --model "$BENCH_MODEL" \
+            --workers "$BENCH_WORKERS" \
+            --judge-workers "$JUDGE_WORKERS" \
+            --output eval/results/task-gain-v4.jsonl \
+            "${JUDGE[@]}" "${EXTRA[@]}"
+      - name: Show summary
+        run: cat eval/results/task-gain-v4.summary.json
+      - name: Upload v4 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-gain-v4-${{ github.run_id }}
+          path: |
+            eval/results/planner-reliability-v3-v4.json
+            eval/results/task-gain-v4.jsonl
+            eval/results/task-gain-v4.summary.json
